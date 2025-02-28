@@ -1,1 +1,1 @@
-print("Hello woreeld.")
+print("Hello wosreeld.")
