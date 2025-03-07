@@ -1,1 +1,1 @@
-print("Hello wotsreeld. Yeet!")
+print("ammar er gay. Yeet!")
