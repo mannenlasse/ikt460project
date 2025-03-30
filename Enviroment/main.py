@@ -6,18 +6,17 @@ class Game:
     def __init__(self, height, width):
         self.board_height = height
         self.board_width = width
-
         self.board = np.zeros((self.board_height, self.board_width), dtype=int)
         self.winning_length = 4
         self.current_player = 1  
 
 
 
-    def make_move(self, col):
+    def make_move(self, index):
         for row in reversed(range(self.board_height)):
-            if self.board[row, col] == 0:
-                self.board[row, col] = self.current_player
-                return True  # <--- ADD THIS!
+            if self.board[row, index] == 0:
+                self.board[row, index] = self.current_player
+                return True  
         
         print("make_move: no available moves")
         return False
@@ -34,8 +33,16 @@ class Game:
 
         print(f"random_available_column: chose: {random_move} as a random column")
 
-        
         return random_move
+
+
+
+
+    def winning_moves(self, index):
+        print("winning_moves")
+        
+
+
 
     def print_board(self):
         print(np.flip(self.board))
@@ -52,6 +59,11 @@ class Game:
 
             self.make_move(col)
             print(f"Player {self.current_player} played in column {col}")
+
+            # Get value at row 3, column 4
+            value = self.board[3, 4]
+
+            print(f"The value in {col} is {value} ")
             self.print_board()
             print("")
 
