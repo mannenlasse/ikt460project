@@ -13,7 +13,7 @@ class Game:
 
 
     def make_move(self, index):
-        for row in reversed(range(self.board_height)):
+        for row in (reversed(range(self.board_height))):
             if self.board[row, index] == 0:
                 self.board[row, index] = self.current_player
                 return True  
@@ -45,7 +45,8 @@ class Game:
 
 
     def print_board(self):
-        print(np.flip(self.board))
+        print(self.board)
+        #print(np.flip(self.board))
 
 
     def simulate_game(self):
@@ -59,11 +60,23 @@ class Game:
 
             self.make_move(col)
             print(f"Player {self.current_player} played in column {col}")
-
+          
+            """
             # Get value at row 3, column 4
-            value = self.board[3, 4]
+            value1 = self.board[0, 5]
+            value2 = self.board[1, 5]
+            value3 = self.board[2, 5]
+            value4 = self.board[3, 5]
+            value5 = self.board[4, 5]
+            value6 = self.board[5, 5]
+            print(f"The value1 in col: 6 row 1 is {value1} \n")
+            print(f"The value2 in col: 6 row 2 {value2} \n")
+            print(f"The value3 in col: 6 row 3 {value3} \n")
+            print(f"The value4 in col: 6 row 4 {value4} \n")
+            print(f"The value5 in col: 6 row 5 {value5} \n")
+            print(f"The value6 in col: 6 row 6 {value6} \n")
+            """
 
-            print(f"The value in {col} is {value} ")
             self.print_board()
             print("")
 
@@ -71,6 +84,6 @@ class Game:
             self.current_player = 2 if self.current_player == 1 else 1
 
 
-game = Game(6,9)
+game = Game(6,8)
 
 game.simulate_game()
