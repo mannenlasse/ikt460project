@@ -116,6 +116,6 @@ class Game:
 
 
 
-game = Game(6,8,2,5)
+game = Game(6,7,2,4)
 
 game.simulate_game()
