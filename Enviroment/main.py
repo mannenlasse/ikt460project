@@ -4,17 +4,29 @@ import random
 class Game: 
 
     def __init__(self, height, width, num_players, win_length):
+        #self. means current state    
+
         self.board_height = height
         self.board_width = width
         self.number_of_players = num_players
+
+        #the board is a numpy array consisting of int and its size is defined by variables height and width
+        #empty board consists of only 0 
         self.board = np.zeros((self.board_height, self.board_width), dtype=int)
+
+        #variable defining how many in a row you need to win 
         self.winning_length = win_length
+
+        #always start with players number 1 
         self.current_player = 1  
+
         self.winner = None
 
 
 
     def make_move(self, index):
+        #since four in a row is with gravity. We use reverse to go through the board upside down so that it searches downwards and acts like gravity exsists
+
         for row in (reversed(range(self.board_height))):
             if self.board[row, index] == 0:
                 self.board[row, index] = self.current_player
@@ -25,20 +37,24 @@ class Game:
 
 
     def random_available_column(self):
+        #a variable that goes through all the empty positions on the board(all positions in the array that are 0) 
         available_columns = [col for col in range(self.board_width) if self.board[0, col] == 0]
+        
         if not available_columns:
             print("random_available_column: no cells available")
             return None
         
-        random_move = random.choice(available_columns)
+        #chooses a randomn column that has an empty position 
+        random_available_column = random.choice(available_columns)
 
-        print(f"random_available_column: chose: {random_move} as a random column")
+        print(f"random_available_column: chose: {random_available_column} as a random column")
 
-        return random_move
+        return random_available_column
 
 
     def winning_moves(self, row, col):
-        player = self.current_player  # more direct and clearer
+
+        #All possitble directions: horixontal , vertical , diagonal up , diagonal down
         directions = [(0, 1), (1, 0), (1, 1), (-1, 1)]  # horiz, vert, diag↘, diag↗
 
         for dr, dc in directions:
@@ -46,21 +62,22 @@ class Game:
 
             # Check one direction
             r, c = row + dr, col + dc
-            while 0 <= r < self.board_height and 0 <= c < self.board_width and self.board[r, c] == player:
+            while 0 <= r < self.board_height and 0 <= c < self.board_width and self.board[r, c] == self.current_player:
                 count += 1
                 r += dr
                 c += dc
 
             # Check the opposite direction
             r, c = row - dr, col - dc
-            while 0 <= r < self.board_height and 0 <= c < self.board_width and self.board[r, c] == player:
+            while 0 <= r < self.board_height and 0 <= c < self.board_width and self.board[r, c] == self.current_player:
                 count += 1
                 r -= dr
                 c -= dc
 
+            #if the current count is as same or more than whats needed to win the game, the current players becomes the winner. 
             if count >= self.winning_length:
-                self.winner = player
-                print(f"Player {player} wins with {count} in a row!")
+                self.winner = self.current_player
+                print(f"winning_moves: Player {self.current_player} wins with {count} in a row!")
                 return True
 
         return False
@@ -72,7 +89,7 @@ class Game:
 
 
     def simulate_game(self):
-        print("SimulateGame: started\n")
+        print("simulate_game: started\n")
 
         condition = True 
         
@@ -81,16 +98,16 @@ class Game:
             move = self.random_available_column()
 
             if move is None:
-                print("Board is full\n")
+                print("simulate_game: Board is full\n")
                 break
 
             row_col = self.make_move(move)
 
             row, col = row_col
-            print(f"Player {self.current_player} played in column {move}")
+            print(f"simulate_game: Player {self.current_player} played in column {move}")
 
             if self.winning_moves(row, col):
-                print(f"Player {self.current_player} has won!!!")
+                print(f"simulate_game: Player {self.current_player} has won!!!")
                 condition = False
             """
             # Get value at row 3, column 4
@@ -116,6 +133,7 @@ class Game:
 
 
 
-game = Game(6,7,2,4)
+#paramater: height, width, number pf players, in a row needed
+game = Game(8,12,4,6)
 
 game.simulate_game()
