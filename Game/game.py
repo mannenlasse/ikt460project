@@ -3,6 +3,7 @@ import random
 
 class Game: 
 
+
     def __init__(self, height, width, num_players, win_length):
         #self. means current state    
 
@@ -30,6 +31,7 @@ class Game:
         for row in (reversed(range(self.board_height))):
             if self.board[row, index] == 0:
                 self.board[row, index] = self.current_player
+                print(f"game.py: make_move: found available moves: row: {row} and index: {index} for player: {self.current_player}")
                 return row, index  
         print("game.py: make_move: no available moves")
         return False
