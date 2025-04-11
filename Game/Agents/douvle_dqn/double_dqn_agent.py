@@ -42,9 +42,17 @@ class DoubleDQNAgent:
         # Experience replay memory
         self.memory = deque(maxlen=memory_size)
         
+        # Set device for GPU acceleration
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
         # Main network and target network
         self.model = DQNNetwork(self.state_size, self.action_size)
         self.target_model = DQNNetwork(self.state_size, self.action_size)
+        
+        # Move models to the appropriate device
+        self.model.to(self.device)
+        self.target_model.to(self.device)
+        
         self.update_target_network()
         
         # Optimizer
@@ -81,7 +89,7 @@ class DoubleDQNAgent:
         
         # Get current state
         state = self.get_state(game)
-        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         
         # Epsilon-greedy action selection
         if np.random.rand() <= self.epsilon:
@@ -90,7 +98,7 @@ class DoubleDQNAgent:
         else:
             # Exploit: choose the best action according to the model
             with torch.no_grad():
-                q_values = self.model(state_tensor).detach().numpy()[0]
+                q_values = self.model(state_tensor).cpu().detach().numpy()[0]  # Move back to CPU for numpy
                 
                 # Filter for only valid actions
                 valid_q_values = {col: q_values[col] for col in valid_columns}
@@ -105,8 +113,8 @@ class DoubleDQNAgent:
         minibatch = random.sample(self.memory, self.batch_size)
         
         for state, action, reward, next_state, done in minibatch:
-            state_tensor = torch.FloatTensor(state).unsqueeze(0)
-            next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+            next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0).to(self.device)
             
             # Current Q values
             current_q = self.model(state_tensor)

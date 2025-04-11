@@ -2,6 +2,7 @@
 import numpy as np
 import sys
 import os
+import torch  # Legg til denne importen
 
 # Add the project root to the path so imports work correctly
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
@@ -32,6 +33,16 @@ dqn_agent = DoubleDQNAgent(
     memory_size=50000,
     batch_size=64
 )
+
+# Legg til GPU-akselerasjon hvis tilgjengelig
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+dqn_agent.model.to(device)
+dqn_agent.target_model.to(device)
+
+# Oppdater også select_action og train metodene i DoubleDQNAgent-klassen for å bruke device
+# Dette kan gjøres ved å modifisere double_dqn_agent.py
+
 opponent = RandomAgent(1)  # Will be assigned player_id 2 in the game loop
 
 # Statistics tracking
