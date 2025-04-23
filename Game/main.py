@@ -10,8 +10,7 @@ game = Game(6, 7, 2, 4)
 
 
 # which player gets wthich agent:  EXAMPLE: RandomAgent(0)  = Player 1 gets random agent  
-agents = [RandomAgent(0), Random_Agent_2(1)]
-
+agents = [RandomAgent(0), Random_Agent_2(1,0.3,0.4,0.5,0.6)]
 
 
 print("main.py: Game started!\n")
