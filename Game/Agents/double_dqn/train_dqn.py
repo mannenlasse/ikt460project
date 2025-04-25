@@ -68,6 +68,7 @@ dqn_agent.target_model.to(device)
 # Oppdater også select_action og train metodene i DoubleDQNAgent-klassen for å bruke device
 # Dette kan gjøres ved å modifisere double_dqn_agent.py
 
+# Opponent is always RandomAgent in this training script
 opponent = RandomAgent(1)  # Will be assigned player_id 2 in the game loop
 
 # Statistics tracking

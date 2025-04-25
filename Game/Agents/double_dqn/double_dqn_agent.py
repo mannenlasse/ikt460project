@@ -180,12 +180,14 @@ class DoubleDQNAgent:
             opponent_id = 3 - self.player_id # Assuming player IDs 1 and 2
 
             # 1. Reward for creating 3-in-a-row (potential win setup)
-            if self._check_line_length(game, row, col, self.player_id, game.winning_length - 1):
+            # Pass opponent_id to the helper function
+            if self._check_line_length(game, row, col, self.player_id, game.winning_length - 1, opponent_id):
                 intermediate_reward += 0.5 # Positive reward for setting up a win
 
             # 2. Reward for blocking opponent's 3-in-a-row (heuristic)
             # Check if placing the piece at (row, col) blocked a potential win for the opponent at that spot
-            if self._check_line_length(game, row, col, opponent_id, game.winning_length - 1, check_for_player=opponent_id):
+            # Pass opponent_id to the helper function
+            if self._check_line_length(game, row, col, self.player_id, game.winning_length - 1, opponent_id, check_for_player=opponent_id):
                  intermediate_reward += 0.4 # Positive reward for blocking
 
             # 3. Reward for playing in the center column (adjust index if needed)
@@ -203,12 +205,14 @@ class DoubleDQNAgent:
             return 0.0
 
     # --- Helper methods for shaped rewards ---
-    def _check_line_length(self, game, row, col, player_id, length_needed, check_for_player=None):
+    # Add opponent_id to the function signature
+    def _check_line_length(self, game, row, col, player_id, length_needed, opponent_id, check_for_player=None):
         """
         Checks if the move at (row, col) by 'player_id' completed a line
         of exactly 'length_needed' for 'check_for_player'.
         If 'check_for_player' is None, it checks for 'player_id'.
         Used for detecting own 3-in-a-row or blocking opponent's 3-in-a-row.
+        Requires opponent_id to check blocking condition.
         """
         if check_for_player is None:
             check_for_player = player_id
@@ -247,6 +251,7 @@ class DoubleDQNAgent:
 
             # Check if we found exactly the length needed
             # Important: For blocking check, we want to know if the opponent HAD length_needed-1 pointing here
+            # Now opponent_id is defined within this function's scope
             if board[row, col] == player_id and check_for_player == opponent_id: # Agent just played, checking if opponent was blocked
                  # Opponent needed length_needed pieces aligned towards (row, col)
                  if count == length_needed -1:
