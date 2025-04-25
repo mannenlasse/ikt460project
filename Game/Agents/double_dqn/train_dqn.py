@@ -4,6 +4,7 @@ import sys
 import os
 import torch
 import argparse # Added for command-line arguments
+import datetime # Import datetime module
 
 # Add the project root to the path so imports work correctly
 # Corrected path calculation: go up three levels from __file__
@@ -77,6 +78,9 @@ loss_history = []
 draw_history = []
 reward_history = []
 epsilon_history = []
+
+# Get current timestamp for unique filenames
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Training loop
 for episode in range(NUM_EPISODES):
@@ -156,68 +160,122 @@ for episode in range(NUM_EPISODES):
         # Switch player only if game not done
         if not done:
             game.current_player = (game.current_player % NUM_PLAYERS) + 1
+    # --- End of inner game loop (while not done) ---
 
-    # Record statistics
+    # --- Add this section to record episode outcome ---
+    if game.winner == dqn_agent.player_id:
+        win_history.append(1)
+        loss_history.append(0)
+        draw_history.append(0)
+    elif game.winner is not None: # Opponent won (winner is not None and not the agent)
+        win_history.append(0)
+        loss_history.append(1)
+        draw_history.append(0)
+    else: # Draw (winner is None and game is done)
+        win_history.append(0)
+        loss_history.append(0)
+        draw_history.append(1)
+    # --- End of section to add ---
+
+    # Record other statistics (already existing, keep it)
     reward_history.append(total_reward)
     epsilon_history.append(dqn_agent.epsilon)
-    
+
     # Print progress
     if (episode + 1) % 100 == 0:
-        win_rate = sum(win_history[-100:]) / 100
-        loss_rate = sum(loss_history[-100:]) / 100
-        draw_rate = sum(draw_history[-100:]) / 100
-        avg_reward = sum(reward_history[-100:]) / 100
-        
+        # Use max(1, ...) to avoid division by zero if less than 100 episodes have run
+        # Ensure we don't index beyond list bounds if fewer than 100 episodes
+        last_episodes_count = min(100, episode + 1)
+        win_rate = sum(win_history[-last_episodes_count:]) / last_episodes_count
+        loss_rate = sum(loss_history[-last_episodes_count:]) / last_episodes_count
+        draw_rate = sum(draw_history[-last_episodes_count:]) / last_episodes_count
+        avg_reward = sum(reward_history[-last_episodes_count:]) / last_episodes_count
+
         print(f"Episode {episode + 1}/{NUM_EPISODES}")
-        print(f"Win Rate: {win_rate:.2f}, Loss Rate: {loss_rate:.2f}, Draw Rate: {draw_rate:.2f}")
+        print(f"Win Rate (last {last_episodes_count}): {win_rate:.2f}, Loss Rate: {loss_rate:.2f}, Draw Rate: {draw_rate:.2f}") # Clarified label
         print(f"Average Reward: {avg_reward:.4f}, Epsilon: {dqn_agent.epsilon:.4f}")
         print("-" * 50)
-    
+
     # Save model periodically and at the end
     if (episode + 1) % SAVE_FREQUENCY == 0 or episode == NUM_EPISODES - 1:
-        save_path = os.path.join(MODEL_DIR, f'dqn_agent_{REWARD_TYPE}_ep{episode + 1}.pt')
+        # Construct the full path using MODEL_DIR and add timestamp/reward_type/episode
+        filename = f'dqn_agent_{REWARD_TYPE}_ep{episode + 1}_{timestamp}.pt'
+        save_path = os.path.join(MODEL_DIR, filename)
         dqn_agent.save_model(save_path)
 
-# Save the final model
-dqn_agent.save_model("models/dqn_agent_final.pt")
+# Save the final model with more descriptive name
+final_filename = f'dqn_agent_{REWARD_TYPE}_final_ep{NUM_EPISODES}_{timestamp}.pt'
+final_save_path = os.path.join(MODEL_DIR, final_filename)
+# We can just rename the last saved model if it was saved in the last step,
+# or save it again explicitly. Saving again is simpler.
+dqn_agent.save_model(final_save_path)
+# Remove the old generic final save line if it exists:
+# dqn_agent.save_model("models/dqn_agent_final.pt") # Remove or comment out this line
+
+# --- Plotting ---
+print("Training finished. Generating plots...")
 
 # Plot training statistics
 plt.figure(figsize=(15, 10))
 
 plt.subplot(2, 2, 1)
-plt.plot(range(len(win_history)), win_history, 'g-', alpha=0.3)
-plt.plot(np.convolve(win_history, np.ones(100)/100, mode='valid'), 'g-')
-plt.title('Win Rate')
+# Check if win_history is long enough before convolving
+if len(win_history) >= 100:
+    plt.plot(np.convolve(win_history, np.ones(100)/100, mode='valid'), 'g-', label='Smoothed Win Rate')
+plt.plot(range(len(win_history)), win_history, 'g-', alpha=0.3, label='Raw Outcome (1=Win)') # Plot raw data too
+plt.title('Win History') # Adjusted title
 plt.xlabel('Episode')
-plt.ylabel('Win (1) / Loss (0)')
+plt.ylabel('Outcome')
+plt.legend()
+
 
 plt.subplot(2, 2, 2)
-plt.plot(range(len(reward_history)), reward_history, 'b-', alpha=0.3)
-plt.plot(np.convolve(reward_history, np.ones(100)/100, mode='valid'), 'b-')
+# Check if reward_history is long enough before convolving
+if len(reward_history) >= 100:
+    plt.plot(np.convolve(reward_history, np.ones(100)/100, mode='valid'), 'b-', label='Smoothed Reward')
+plt.plot(range(len(reward_history)), reward_history, 'b-', alpha=0.3, label='Raw Reward')
 plt.title('Reward History')
 plt.xlabel('Episode')
 plt.ylabel('Total Reward')
+plt.legend()
+
 
 plt.subplot(2, 2, 3)
+# Epsilon plot remains the same
 plt.plot(range(len(epsilon_history)), epsilon_history, 'r-')
 plt.title('Epsilon Decay')
 plt.xlabel('Episode')
 plt.ylabel('Epsilon')
 
+
+# Modify the combined plot slightly for clarity
 plt.subplot(2, 2, 4)
 window_size = 100
-win_rate_history = [sum(win_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(win_history)+1)]
-loss_rate_history = [sum(loss_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(loss_history)+1)]
-draw_rate_history = [sum(draw_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(draw_history)+1)]
+# Calculate rolling averages safely, handle cases where i < window_size
+win_rate_history_avg = [sum(win_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(win_history)+1)]
+loss_rate_history_avg = [sum(loss_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(loss_history)+1)]
+draw_rate_history_avg = [sum(draw_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(draw_history)+1)]
 
-plt.plot(range(len(win_rate_history)), win_rate_history, 'g-', label='Win Rate')
-plt.plot(range(len(loss_rate_history)), loss_rate_history, 'r-', label='Loss Rate')
-plt.plot(range(len(draw_rate_history)), draw_rate_history, 'b-', label='Draw Rate')
-plt.title('Performance Metrics')
+# Check if lists are non-empty before plotting
+if win_rate_history_avg:
+    plt.plot(range(len(win_rate_history_avg)), win_rate_history_avg, 'g-', label='Win Rate (Avg)')
+if loss_rate_history_avg:
+    plt.plot(range(len(loss_rate_history_avg)), loss_rate_history_avg, 'r-', label='Loss Rate (Avg)')
+if draw_rate_history_avg:
+    plt.plot(range(len(draw_rate_history_avg)), draw_rate_history_avg, 'b-', label='Draw Rate (Avg)')
+
+plt.title(f'Performance Metrics (Rolling Avg, Window={window_size})')
 plt.xlabel('Episode')
 plt.ylabel('Rate')
-plt.legend()
+# Only show legend if there's something to label
+if win_rate_history_avg or loss_rate_history_avg or draw_rate_history_avg:
+    plt.legend()
+
 
 plt.tight_layout()
-plt.savefig('training_stats.png')
-plt.show()
+# Construct filename for the plot image including reward type and episodes
+plot_filename = f'training_stats_{REWARD_TYPE}_ep{NUM_EPISODES}.png'
+plot_save_path = os.path.join(os.path.dirname(__file__), plot_filename) # Save in the same directory as the script
+plt.savefig(plot_save_path)
+print(f"Plot saved to {plot_save_path}")
+plt.show() # Ensure this line is NOT commented out if you want to see the plot window
