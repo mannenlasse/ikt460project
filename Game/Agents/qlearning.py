@@ -4,7 +4,7 @@ import random
 
 
 class QlearnAgent(Agent):
-    def __init__(self, Current_Player, learn_rate = 0.1, disc_factor= 0.9, explor_rate = 1.0, explor_decay = 0.995):
+    def __init__(self, Current_Player, learn_rate, disc_factor, explor_rate, explor_decay):
     
         self.current_player = Current_Player
 
@@ -17,7 +17,9 @@ class QlearnAgent(Agent):
         self.last_state = None 
         self.last_action = None
 
-        self.q_table = {}
+        self.q_table1 = {}
+        self.q_table2 = {}
+
 
 
 
@@ -27,8 +29,10 @@ class QlearnAgent(Agent):
     
 
     # can also be said to be the decide_action because it decided what action the agent takes based on the current q-value estimation
-    def select_action(self, game):
+    def select_action_from_policy(self, game):
         state = self.get_state(game)
+
+        #defining the set of actions (which column to drop)
         valid_actions = game.get_valid_columns()
 
 
@@ -40,6 +44,9 @@ class QlearnAgent(Agent):
             q_values = []
 
             for action in valid_actions: 
+                q1_value = self.q_table1.get((state, action), 0.0)
+                q2_value = self.q_table1.get((state, action), 0.0)
+
                 q = self.q_table.get((state, action), 0.0)
                 q_values.append((action, q))
 
@@ -66,8 +73,24 @@ class QlearnAgent(Agent):
         current_q = self.q_table.get((self.last_state, self.last_action), 0.0)
 
 
+        # Estimate the best future Q-value from the next state
+        if done:
+            future_q = 0  # No future — game is over
+        else:
+            future_q = max(
+                [self.q_table.get((next_state, a), 0.0) for a in next_game_state.get_valid_columns()],
+                default=0.0
+            )
 
+
+
+        # Q-learning update rule
+        updated_q = current_q + self.learning_rate * (reward + self.discouting_factor * future_q - current_q)
          
 
-    
+        self.q_table[(self.last_state, self.last_action)] = updated_q
+
+        print(f"qlearning.py: observe: Updated Q[{self.last_state}, {self.last_action}] to {updated_q:.3f}")
+
+
 
