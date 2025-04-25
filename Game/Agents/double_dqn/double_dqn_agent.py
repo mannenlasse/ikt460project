@@ -274,6 +274,7 @@ class DoubleDQNAgent:
 
         return False # No line of the specified length found passing through (row, col)
 
+    # Remove row and col from the definition as they are not used
     def _check_opponent_immediate_win_threat(self, game, opponent_id):
         """
         Checks if the opponent has a winning move available on their next turn.
@@ -304,7 +305,24 @@ class DoubleDQNAgent:
                 # Undo the simulation for the next check
                 original_board[next_row, next_col] = 0
 
-        return False # No immediate winning threat found for the opponent
+        return False # Return False if no immediate threat was created by the agent's move
+
+    # Add the save_model method here
+    def save_model(self, path):
+        """Saves the current state of the main model."""
+        print(f"Saving model to {path}...")
+        torch.save(self.model.state_dict(), path)
+        print("Model saved.")
+
+    # (Optional: Add a load_model method if you haven't already)
+    # def load_model(self, path):
+    #    """Loads the model state from a file."""
+    #    print(f"Loading model from {path}...")
+    #    self.model.load_state_dict(torch.load(path, map_location=self.device))
+    #    self.target_model.load_state_dict(self.model.state_dict()) # Ensure target model is also updated
+    #    self.model.eval() # Set the model to evaluation mode
+    #    self.target_model.eval() # Set the target model to evaluation mode
+    #    print("Model loaded.")
 
     def _static_check_win(self, board, player_id, row, col, win_length):
         """
@@ -334,5 +352,3 @@ class DoubleDQNAgent:
             if count >= win_length:
                 return True
         return False
-
-    # ... save_model, load_model ...
