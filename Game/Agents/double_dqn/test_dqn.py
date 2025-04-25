@@ -1,7 +1,15 @@
+import sys
+import os
+
+# Add project root for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 from Game.game import Game
-from Agents.double_dqn_agent import DoubleDQNAgent
-from Agents.random_agent import RandomAgent
+# Updated import path (relative)
+from .double_dqn_agent import DoubleDQNAgent
+from Game.Agents.random_agent import RandomAgent
 import numpy as np
+import torch # Added
 
 # Game parameters
 BOARD_HEIGHT = 6
@@ -15,15 +23,25 @@ dqn_agent = DoubleDQNAgent(
     player_id=1,
     board_height=BOARD_HEIGHT,
     board_width=BOARD_WIDTH,
-    action_size=BOARD_WIDTH
+    action_size=BOARD_WIDTH,
+    # Specify reward_type if needed for initialization, though it might not affect evaluation
+    reward_type='sparse' # Or 'shaped', or load from model checkpoint if saved
 )
 
-# Load the trained model
-dqn_agent.load_model("models/dqn_agent_final.pt")
+# Load the trained model (Update path)
+# Choose which model to test (sparse or shaped)
+MODEL_FILENAME = "dqn_agent_sparse_final.pt" # Or "dqn_agent_shaped_final.pt"
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'models', MODEL_FILENAME)
+if os.path.exists(MODEL_PATH):
+     dqn_agent.load_model(MODEL_PATH)
+else:
+     print(f"Error: Model file not found at {MODEL_PATH}")
+     sys.exit(1)
+
 dqn_agent.epsilon = 0.0  # No exploration during testing
 
 # Initialize opponent
-opponent = RandomAgent(1)  # Will be assigned player_id 2 in the game loop
+opponent = RandomAgent(2) # Assign player ID 2
 
 # Statistics
 wins = 0
@@ -44,7 +62,7 @@ for game_num in range(NUM_TEST_GAMES):
         if current_player_id == 1:  # DQN agent's turn
             action = dqn_agent.select_action(game)
         else:  # Opponent's turn
-            opponent.player_id = current_player_id - 1  # Adjust player_id for the opponent
+            opponent.current_player = current_player_id # Ensure opponent knows ID
             action = opponent.select_action(game)
         
         # Check if the board is full
