@@ -1,6 +1,6 @@
 class Agent:
-    def __init__(self, player_id):
-        self.player_id = player_id
+    def __init__(self, current_player):
+        self.current_player = current_player
 
 
 

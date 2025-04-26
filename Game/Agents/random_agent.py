@@ -4,8 +4,8 @@ from .base_agent import Agent
 
 class RandomAgent(Agent):
 
-    def __init__(self, Current_Player):
-        self.current_player = Current_Player
+    def __init__(self, current_player):
+        self.current_player = current_player
         
 
 
@@ -27,3 +27,8 @@ class RandomAgent(Agent):
         print(f"random_agent.py: RandomAgent: chose: {random_available_column} as a random column for player {self.current_player}")
 
         return random_available_column
+    
+
+    def observe(self, reward, next_state, done):
+    # Random agent doesn't learn, so we just pass
+      print("no learning")

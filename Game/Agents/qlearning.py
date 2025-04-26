@@ -17,80 +17,83 @@ class QlearnAgent(Agent):
         self.last_state = None 
         self.last_action = None
 
-        self.q_table1 = {}
-        self.q_table2 = {}
 
+        self.q1 = {}
+        self.q2 = {} 
 
-
+       
 
 
     def get_state(self, game):
         return tuple(game.board.flatten())
-    
+
+
+    def max_action(self, game):
+        #getting the game state in tuple
+        state = self.get_state(game)
+        #print(f"qlearning.py: select_Action_From_policy: {state}")
+
+        #defining the set of actions (which column to drop)
+        valid_actions = game.get_valid_columns()
+  
+        q_values = [self.q1.get((state, action)) + self.q2.get((state, action)) for action in valid_actions]
+        
+        max_q = max(q_values)
+        best_actions = [a for a, q in zip(valid_actions, q_values) if q == max_q]
+        action = random.choice(best_actions)
+
+        return action
+
 
     # can also be said to be the decide_action because it decided what action the agent takes based on the current q-value estimation
     def select_action_from_policy(self, game):
+
+        #getting the game state in tuple
         state = self.get_state(game)
+        #print(f"qlearning.py: select_Action_From_policy: {state}")
 
         #defining the set of actions (which column to drop)
         valid_actions = game.get_valid_columns()
 
 
+        #greedy poilcy
+        #exploration 
         if random.random() < self.exploration_rate:
             action = random.choice(valid_actions)
-            print(f"qlearning.py: select_action: [Explore] chose action {action} at random")
+            print("qlearning.py: select_action: Random action selected due to exploration")
 
+        #explotation
         else: 
-            q_values = []
+            print(f"heidu")
 
-            for action in valid_actions: 
-                q1_value = self.q_table1.get((state, action), 0.0)
-                q2_value = self.q_table1.get((state, action), 0.0)
-
-                q = self.q_table.get((state, action), 0.0)
-                q_values.append((action, q))
-
-            max_q = max(q_values, key=lambda x: x[1])[1]
-            best_actions = [a for a, q in q_values if q == max_q]
+            #retrieving q values from table 1 and 2 and summing them up and storing in a list called q values
+            q_values = [self.q1.get((state, action)) + self.q2.get((state, action)) for action in valid_actions]
+           
+            max_q = max(q_values)
+            best_actions = [a for a, q in zip(valid_actions, q_values) if q == max_q]
             action = random.choice(best_actions)
-
-            print(f"qlearning.py: select_action: [Exploit] chose best action {action} with Q={max_q:.3f}")
-
+            print("qlearning.py: select_action: Best action selected")
 
         self.last_state = state
         self.last_action = action
-
         return action
+    
 
 
 
     def observe(self, reward, next_game_state, done):
         if self.last_state is None or self.last_action is None:
-            return 
-        
+            return
+
         next_state = tuple(next_game_state.board.flatten())
+        valid_actions = next_game_state.get_valid_columns()
 
-        current_q = self.q_table.get((self.last_state, self.last_action), 0.0)
-
-
-        # Estimate the best future Q-value from the next state
-        if done:
-            future_q = 0  # No future — game is over
-        else:
-            future_q = max(
-                [self.q_table.get((next_state, a), 0.0) for a in next_game_state.get_valid_columns()],
-                default=0.0
-            )
+        # Randomly choose whether to update q_table1 or q_table2
+        if random.random() < 0.5:
+            print("fs")
+            # Update Q1 using Q2 for qlearning.py: select_Action_From_policy: 
 
 
 
-        # Q-learning update rule
-        updated_q = current_q + self.learning_rate * (reward + self.discouting_factor * future_q - current_q)
-         
-
-        self.q_table[(self.last_state, self.last_action)] = updated_q
-
-        print(f"qlearning.py: observe: Updated Q[{self.last_state}, {self.last_action}] to {updated_q:.3f}")
-
-
-
+    def select_action(self, game):
+        return self.select_action_from_policy(game)
