@@ -120,7 +120,7 @@ class QlearnAgent(Agent):
             old_q2 = self.q2.get((self.last_state, self.last_action), 0.0)
 
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
-            self.q1[(self.last_state, self.last_action)] = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
+            self.q2[(self.last_state, self.last_action)] = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
 
 
         # Reset state if episode ended

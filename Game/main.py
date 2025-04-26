@@ -19,7 +19,7 @@ for episode in range(1, NUM_EPISODES + 1):
 
     game = Game(6, 7, 2, 5)
 
-    agents = [RandomAgent(0), QlearnAgent(1, 0.1, 0.9, 0.8, 0.995)]
+    agents = [RandomAgent(0), QlearnAgent(1, 0.1, 0.9, 0.9, 0.1)]
 
 
     print("main.py: Game started!\n")
