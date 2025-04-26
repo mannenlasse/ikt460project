@@ -1,52 +1,45 @@
 from .base_agent import Agent
 import numpy as np
 import random 
-
+from collections import defaultdict
 
 class QlearnAgent(Agent):
     def __init__(self, Current_Player, learn_rate, disc_factor, explor_rate, explor_decay):
     
         self.current_player = Current_Player
 
-        self.learning_rate = learn_rate  # learning rate
-        self.discouting_factor = disc_factor # discounting factor, how much do future rewards matter
-        self.exploration_rate = explor_rate
-        self.exploration_decay = explor_decay
+        self.alpha = learn_rate  # learning rate
+        self.gamma = disc_factor # discounting factor, how much do future rewards matter
+        self.epsilon = explor_rate
+        self.epsilon_decay = explor_decay
 
         #parameters that will track last state and action, currently set to none and will be updated as the game moves on 
         self.last_state = None 
         self.last_action = None
 
 
-        self.q1 = {}
-        self.q2 = {} 
-
-       
+        self.q1 = defaultdict(float)
+        self.q2 = defaultdict(float)
 
 
     def get_state(self, game):
-        return tuple(game.board.flatten())
+        statee = tuple(game.board.flatten())
+        return statee
+    
 
 
-    def max_action(self, game):
-        #getting the game state in tuple
-        state = self.get_state(game)
-        #print(f"qlearning.py: select_Action_From_policy: {state}")
-
-        #defining the set of actions (which column to drop)
+    def max_action(self, q, state, game):
         valid_actions = game.get_valid_columns()
-  
-        q_values = [self.q1.get((state, action)) + self.q2.get((state, action)) for action in valid_actions]
+        q_values = {a: q.get((state, a), 0.0) for a in valid_actions}
         
-        max_q = max(q_values)
-        best_actions = [a for a, q in zip(valid_actions, q_values) if q == max_q]
-        action = random.choice(best_actions)
+        max_q = max(q_values.values())
+        best_actions = [a for a, val in q_values.items() if val == max_q]
 
-        return action
+        return random.choice(best_actions)
 
 
     # can also be said to be the decide_action because it decided what action the agent takes based on the current q-value estimation
-    def select_action_from_policy(self, game):
+    def select_action(self, game):
 
         #getting the game state in tuple
         state = self.get_state(game)
@@ -58,21 +51,20 @@ class QlearnAgent(Agent):
 
         #greedy poilcy
         #exploration 
-        if random.random() < self.exploration_rate:
+        if random.random() < self.epsilon:
             action = random.choice(valid_actions)
-            print("qlearning.py: select_action: Random action selected due to exploration")
+            print("qlearning.py: select_action [explore]: Random action selected due to exploration")
 
         #explotation
         else: 
-            print(f"heidu")
+            q_sum = {a: self.q1.get((state, a), 0.0) + self.q2.get((state, a), 0.0)
+                    for a in game.get_valid_columns()}
 
-            #retrieving q values from table 1 and 2 and summing them up and storing in a list called q values
-            q_values = [self.q1.get((state, action)) + self.q2.get((state, action)) for action in valid_actions]
-           
-            max_q = max(q_values)
-            best_actions = [a for a, q in zip(valid_actions, q_values) if q == max_q]
+            max_q = max(q_sum.values())
+            best_actions = [a for a, q in q_sum.items() if q == max_q]
             action = random.choice(best_actions)
-            print("qlearning.py: select_action: Best action selected")
+
+            print("qlearning.py: select_action [exploit]: Best action selected")
 
         self.last_state = state
         self.last_action = action
@@ -81,19 +73,61 @@ class QlearnAgent(Agent):
 
 
 
-    def observe(self, reward, next_game_state, done):
-        if self.last_state is None or self.last_action is None:
+    def observe(self, reward, game, done):
+
+        next_state  = self.get_state(game)        
+        valid_actions = game.get_valid_columns()
+       
+        if not valid_actions:
+            print("heas no valid action")
             return
+        
+        rando = random.random()
 
-        next_state = tuple(next_game_state.board.flatten())
-        valid_actions = next_game_state.get_valid_columns()
+        if rando < 0.5: 
+            ############################################################################
+            #    Q1(s, a) ← Q1(s, a) + α [r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a)]   
+            ############################################################################
 
-        # Randomly choose whether to update q_table1 or q_table2
-        if random.random() < 0.5:
-            print("fs")
-            # Update Q1 using Q2 for qlearning.py: select_Action_From_policy: 
+            #argmax_a Q1(s', a)
+            a_ = self.max_action(self.q1, next_state, game)
+
+            #Q2(s', argmax_a Q2(s', a))
+            future_q = self.q2.get((next_state, a_), 0.0)
+
+            #r + γ * Q2(s', argmax_a Q1(s', a))
+            rewards_disc_future_q = reward + self.gamma * future_q 
+
+            #Q1(s, a)
+            old_q1 = self.q1.get((self.last_state, self.last_action), 0.0)
+            #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
+            self.q1[(self.last_state, self.last_action)] = old_q1 + self.alpha * (rewards_disc_future_q - old_q1)
+
+        else:
+            ############################################################################
+            #    Q2(s, a) ← Q2(s, a) + α [r + γ * Q1(s', argmax_a Q2(s', a)) - Q2(s, a)]   
+            ############################################################################
+
+            #argmax_a Q2(s', a)
+            a_ = self.max_action(self.q2, next_state, game)
+
+            #Q2(s', argmax_a Q1(s', a))
+            future_q = self.q1.get((next_state, a_), 0.0)
+            #r + γ * Q2(s', argmax_a Q1(s', a))
+            rewards_disc_future_q = reward + self.gamma * future_q 
+
+            #Q1(s, a)
+            old_q2 = self.q2.get((self.last_state, self.last_action), 0.0)
+
+            #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
+            self.q1[(self.last_state, self.last_action)] = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
+
+
+        # Reset state if episode ended
+        if done:
+            self.last_state = None
+            self.last_action = None
+            self.epsilon *= self.epsilon_decay
 
 
 
-    def select_action(self, game):
-        return self.select_action_from_policy(game)

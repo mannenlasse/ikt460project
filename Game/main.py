@@ -74,7 +74,6 @@ for episode in range(1, NUM_EPISODES + 1):
 
 
 
-
         if won:
             print(f"main.py: Player {game.current_player} has won the game!\n")
             done = True
@@ -83,6 +82,12 @@ for episode in range(1, NUM_EPISODES + 1):
 
         # Switch to next player
         game.current_player = (game.current_player % game.number_of_players) + 1
+
+
+
+
+
+
 
 # Final results
 print("\n=== Training Summary ===")
