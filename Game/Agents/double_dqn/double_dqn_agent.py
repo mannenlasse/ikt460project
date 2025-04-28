@@ -192,3 +192,33 @@ class DoubleDQNAgent:
             if count >= win_length:
                 return True
         return False
+
+    # --- Add save_model method ---
+    def save_model(self, file_path):
+        """Saves the current state of the main model."""
+        try:
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            # Save the model's state dictionary
+            torch.save(self.model.state_dict(), file_path)
+            # Optional: Add a print statement here if you want confirmation from the agent itself
+            # print(f"Agent {self.player_id}: Model state dict saved to {file_path}")
+        except Exception as e:
+            print(f"Error saving model for agent {self.player_id} to {file_path}: {e}")
+
+    # --- Add load_model method ---
+    def load_model(self, file_path):
+        """Loads the model state from a file."""
+        try:
+            if os.path.exists(file_path):
+                # Load the state dictionary and apply it to the model
+                self.model.load_state_dict(torch.load(file_path, map_location=self.device))
+                # Important: Update the target network to match the loaded model
+                self.update_target_network()
+                # Set model to evaluation mode if you are loading for inference/play
+                self.model.eval()
+                print(f"Agent {self.player_id}: Model state dict loaded from {file_path}")
+            else:
+                print(f"Error loading model for agent {self.player_id}: File not found at {file_path}")
+        except Exception as e:
+            print(f"Error loading model for agent {self.player_id} from {file_path}: {e}")

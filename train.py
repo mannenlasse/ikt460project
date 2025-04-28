@@ -260,73 +260,105 @@ for episode in range(NUM_EPISODES):
         filename = f'{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}_ep{episode + 1}_{timestamp}.pt'
         save_path = os.path.join(CENTRAL_MODEL_DIR, filename)
         agent.save_model(save_path)
+        # Add the confirmation print statement here
+        print(f"--- Model saved at episode {episode + 1} to {save_path} ---")
 
+# --- Plotting Results ---
+# Corrected from sprint to print
+print("\n--- Generating Plots ---")
+plt.figure(figsize=(15, 10)) # Adjusted figure size for 4 plots
 
-# --- Plotting ---
-print("Training finished. Generating plots...")
+# --- Data Preparation for Plots ---
+window_size = 100 # Moving average window
+episodes_axis = np.arange(1, NUM_EPISODES + 1)
 
-plt.figure(figsize=(15, 10))
-plot_title_suffix = f'({MODEL_TYPE} vs {OPPONENT_TYPE}, {REWARD_TYPE} Reward)'
+def moving_average(data, window):
+    actual_window = min(len(data), window)
+    if actual_window == 0: return np.array([])
+    return np.convolve(data, np.ones(actual_window)/actual_window, mode='valid')
 
-# Plot Win/Loss/Draw History (Combined)
+ma_win_rate = moving_average(win_history, window_size)
+ma_loss_rate = moving_average(loss_history, window_size) # Still needed for comparison if desired, or remove if not plotting MA loss
+ma_draw_rate = moving_average(draw_history, window_size) # Still needed for comparison if desired, or remove if not plotting MA draw
+ma_reward = moving_average(reward_history, window_size)
+
+actual_window_used = min(len(episodes_axis), window_size)
+ma_episodes = episodes_axis[actual_window_used - 1:] if actual_window_used > 0 else np.array([])
+
+# Ensure lengths match for MA plots (simple safeguard)
+if len(ma_episodes) != len(ma_win_rate) and len(ma_win_rate) > 0:
+    ma_episodes = episodes_axis[len(episodes_axis)-len(ma_win_rate):]
+elif len(ma_win_rate) == 0:
+     ma_episodes = np.array([])
+
+# --- Plot 1: Smoothed Win Rate (Top-Left) ---
 plt.subplot(2, 2, 1)
-window_size = 100
-# Calculate rolling averages safely
-win_rate_history_avg = [sum(win_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(win_history)+1)]
-loss_rate_history_avg = [sum(loss_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(loss_history)+1)]
-draw_rate_history_avg = [sum(draw_history[max(0, i-window_size):i])/min(i, window_size) for i in range(1, len(draw_history)+1)]
-
-if win_rate_history_avg: plt.plot(range(len(win_rate_history_avg)), win_rate_history_avg, 'g-', label='Win Rate (Avg)')
-if loss_rate_history_avg: plt.plot(range(len(loss_rate_history_avg)), loss_rate_history_avg, 'r-', label='Loss Rate (Avg)')
-if draw_rate_history_avg: plt.plot(range(len(draw_rate_history_avg)), draw_rate_history_avg, 'b-', label='Draw Rate (Avg)')
-plt.title(f'Performance Metrics (Rolling Avg, Window={window_size})\n{plot_title_suffix}')
-plt.xlabel('Episode')
+if len(ma_episodes) > 0:
+    plt.plot(ma_episodes, ma_win_rate, label=f'Win Rate (MA {window_size})', color='green')
+    # Optionally add loss/draw MA here too if desired
+    # plt.plot(ma_episodes, ma_loss_rate, label=f'Loss Rate (MA {window_size})', color='red', alpha=0.6)
+    # plt.plot(ma_episodes, ma_draw_rate, label=f'Draw Rate (MA {window_size})', color='blue', alpha=0.6)
+else:
+    plt.text(0.5, 0.5, 'Not enough data for MA', ha='center', va='center')
+plt.title('Smoothed Win Rate')
+plt.xlabel('Episodes')
 plt.ylabel('Rate')
-if win_rate_history_avg or loss_rate_history_avg or draw_rate_history_avg: plt.legend()
+plt.legend()
+plt.grid(True)
 
-# Plot Reward History
+# --- Plot 2: Smoothed Average Reward (Top-Right) ---
 plt.subplot(2, 2, 2)
-if len(reward_history) >= 100:
-    plt.plot(np.convolve(reward_history, np.ones(100)/100, mode='valid'), 'b-', label='Smoothed Reward')
-if reward_history:
-    plt.plot(range(len(reward_history)), reward_history, 'b-', alpha=0.3, label='Raw Reward')
-    plt.title(f'Episode Reward History\n{plot_title_suffix}')
-    plt.xlabel('Episode')
-    plt.ylabel('Total Reward')
-    plt.legend()
+if len(ma_episodes) > 0:
+    plt.plot(ma_episodes, ma_reward, label=f'Avg Reward (MA {window_size})', color='purple')
+else:
+    plt.text(0.5, 0.5, 'Not enough data for MA', ha='center', va='center')
+plt.title('Smoothed Average Reward')
+plt.xlabel('Episodes')
+plt.ylabel('Average Reward')
+plt.legend()
+plt.grid(True)
 
-# Plot Epsilon History (if available)
-if epsilon_history:
-    plt.subplot(2, 2, 3)
-    plt.plot(range(len(epsilon_history)), epsilon_history, 'r-')
-    plt.title(f'Epsilon Decay\n{plot_title_suffix}')
-    plt.xlabel('Episode')
+# --- Plot 3: Epsilon Decay (Bottom-Left) ---
+plt.subplot(2, 2, 3)
+if epsilon_history and len(episodes_axis) > 0:
+    plt.plot(episodes_axis, epsilon_history, label='Epsilon', color='red', linestyle=':')
     plt.ylabel('Epsilon')
 else:
-    # Add a placeholder or different plot if no epsilon
-    plt.subplot(2, 2, 3)
-    plt.text(0.5, 0.5, 'Epsilon not applicable\nfor this agent', ha='center', va='center')
-    plt.title(f'Epsilon\n{plot_title_suffix}')
-    plt.xticks([])
-    plt.yticks([])
+     plt.text(0.5, 0.5, 'No Epsilon data', ha='center', va='center')
+plt.title('Epsilon Decay')
+plt.xlabel('Episodes')
+plt.legend()
+plt.grid(True)
 
-
-# Placeholder for 4th plot (e.g., Loss if agent tracks it)
+# --- Plot 4: Raw Win/Loss/Draw Rates (Bottom-Right) ---
 plt.subplot(2, 2, 4)
-plt.text(0.5, 0.5, 'Plot 4 Placeholder\n(e.g., Loss)', ha='center', va='center')
-plt.title(f'Placeholder\n{plot_title_suffix}')
-plt.xticks([])
-plt.yticks([])
+if len(episodes_axis) > 0:
+    plt.plot(episodes_axis, win_history, label='Win Rate (Raw)', color='green', alpha=0.7)
+    plt.plot(episodes_axis, loss_history, label='Loss Rate (Raw)', color='red', alpha=0.7)
+    plt.plot(episodes_axis, draw_history, label='Draw Rate (Raw)', color='blue', alpha=0.7)
+else:
+     plt.text(0.5, 0.5, 'No data', ha='center', va='center')
+plt.title('Raw Performance Metrics')
+plt.xlabel('Episodes')
+plt.ylabel('Rate (0 or 1)')
+plt.legend()
+plt.grid(True)
 
 
-plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout to prevent title overlap
-# Construct filename for the plot image
-plot_filename = f'training_stats_{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}_ep{NUM_EPISODES}_{timestamp}.png'
-plot_save_path = os.path.join(PLOT_DIR, plot_filename)
+# --- Final Touches ---
+# Add a main title for the whole figure
+main_plot_title = f'Training Performance: {MODEL_TYPE.upper()} ({REWARD_TYPE}) vs {OPPONENT_TYPE.capitalize()} ({NUM_EPISODES} Episodes)'
+plt.suptitle(main_plot_title, fontsize=16) # Use suptitle for figure-level title
+
+plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout to prevent overlap and make space for suptitle
+
+# Save the plot
+plot_filename = f'plot_{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}_ep{NUM_EPISODES}_{timestamp}.png'
+plot_save_path = os.path.join(PLOT_DIR, plot_filename) # Save in PLOT_DIR
 plt.savefig(plot_save_path)
-print(f"Plot saved to {plot_save_path}")
+print(f"Plot saved to: {plot_save_path}")
 
-# Keep plt.show() if you want the plot window to appear
-plt.show()
+# Optionally display the plot
+# plt.show()
 
 print("\n--- Training Complete ---")
