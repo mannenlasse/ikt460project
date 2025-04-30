@@ -17,7 +17,7 @@ class RandomAgent(Agent):
 
         if not available_columns:
             print("random_agent.py: Random_Agent: random_available_column: no cells available")
-            return None
+            return False
         
 
 
