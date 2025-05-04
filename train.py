@@ -13,8 +13,7 @@ sys.path.insert(0, project_root)
 # Import necessary components
 from Game.game import Game
 from Game.Agents.random_agent import RandomAgent
-# Import agent classes dynamically later based on args
-# from Game.Agents.double_dqn.double_dqn_agent import DoubleDQNAgent # Example
+from Game.Agents.double_dqn.double_dqn_agent import DoubleDQNAgent # Import DQN agent for opponent loading
 from Game.reward_utils import calculate_reward # Import the centralized reward function
 
 # --- Central Model Directory ---
@@ -35,7 +34,8 @@ WIN_LENGTH = 4
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description='Train an Agent for Connect Four.')
 parser.add_argument('--model', type=str, required=True, choices=['dqn'], help='Type of model/agent to train (e.g., dqn).') # Add more choices like 'ppo' later
-parser.add_argument('--opponent', type=str, default='random', choices=['random'], help='Type of opponent agent.') # Add more choices later
+parser.add_argument('--opponent', type=str, default='random', choices=['random', 'dqn_model'], help='Type of opponent agent (random or a loaded dqn_model).')
+parser.add_argument('--opponent_model_path', type=str, default=None, help='Path to the pre-trained opponent model file (.pt) if opponent is dqn_model.')
 parser.add_argument('--reward_type', type=str, default='sparse', choices=['sparse', 'shaped'], help='Type of reward structure.')
 parser.add_argument('--episodes', type=int, default=10000, help='Number of episodes to train.')
 parser.add_argument('--save_freq', type=int, default=5000, help='Frequency (in episodes) to save the model.')
@@ -55,6 +55,7 @@ MODEL_TYPE = args.model
 OPPONENT_TYPE = args.opponent
 BATCH_SIZE = args.batch_size
 MEMORY_SIZE = args.memory_size
+OPPONENT_MODEL_PATH = args.opponent_model_path # New variable
 
 # --- Agent Initialization ---
 agent = None
@@ -83,10 +84,36 @@ else:
 opponent = None
 if OPPONENT_TYPE == 'random':
     print(f"Initializing Random Opponent...")
-    # opponent = RandomAgent() # Initialize without player_id argument # <-- Incorrect line from previous fix
-    opponent = RandomAgent(Current_Player=2) # Use the correct argument name 'Current_Player' and assign ID 2
+    opponent = RandomAgent(Current_Player=2) # Assign ID 2
+elif OPPONENT_TYPE == 'dqn_model':
+    if OPPONENT_MODEL_PATH is None:
+        print("Error: --opponent_model_path must be specified when --opponent is 'dqn_model'")
+        sys.exit(1)
+    if not os.path.exists(OPPONENT_MODEL_PATH):
+        print(f"Error: Opponent model file not found at {OPPONENT_MODEL_PATH}")
+        sys.exit(1)
+
+    print(f"Loading DQN Opponent from {OPPONENT_MODEL_PATH}...")
+    # Initialize a DQN agent structure first (parameters like LR don't matter for inference)
+    opponent = DoubleDQNAgent(
+        player_id=2, # Opponent is player 2
+        board_height=BOARD_HEIGHT,
+        board_width=BOARD_WIDTH,
+        action_size=BOARD_WIDTH,
+        learning_rate=0, # Does not learn
+        epsilon=0,       # Always chooses the best action (greedy)
+        epsilon_decay=1, # No decay
+        epsilon_min=0
+    )
+    # Load the saved state dictionary
+    opponent.load_model(OPPONENT_MODEL_PATH)
+    # Set the opponent model to evaluation mode (important!)
+    opponent.model.eval()
+    if hasattr(opponent, 'target_model'): # Ensure target model is also in eval if exists
+        opponent.target_model.eval()
+    print("DQN Opponent loaded successfully.")
+
 else:
-    # Add elif for other opponents later
     print(f"Error: Unknown opponent type '{OPPONENT_TYPE}'")
     sys.exit(1)
 
@@ -348,15 +375,27 @@ plt.grid(True)
 
 
 # --- Final Touches ---
-# Add a main title for the whole figure
-main_plot_title = f'Training Performance: {MODEL_TYPE.upper()} ({REWARD_TYPE}) vs {OPPONENT_TYPE.capitalize()} ({NUM_EPISODES} Episodes)'
-plt.suptitle(main_plot_title, fontsize=16) # Use suptitle for figure-level title
+# Add a main title for the whole figure - Update title generation slightly
+opponent_desc = OPPONENT_TYPE.capitalize()
+if OPPONENT_TYPE == 'dqn_model' and OPPONENT_MODEL_PATH:
+    # Extract a meaningful part of the model name for the title
+    opponent_model_name = os.path.basename(OPPONENT_MODEL_PATH).replace('.pt', '')
+    opponent_desc = f"DQN Model ({opponent_model_name})" # More descriptive title
 
-plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout to prevent overlap and make space for suptitle
+main_plot_title = f'Training Performance: {MODEL_TYPE.upper()} ({REWARD_TYPE}) vs {opponent_desc} ({NUM_EPISODES} Episodes)'
+plt.suptitle(main_plot_title, fontsize=16)
 
-# Save the plot
-plot_filename = f'plot_{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}_ep{NUM_EPISODES}_{timestamp}.png'
-plot_save_path = os.path.join(PLOT_DIR, plot_filename) # Save in PLOT_DIR
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+# Save the plot - Update plot filename generation
+plot_filename = f'plot_{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}'
+if OPPONENT_TYPE == 'dqn_model':
+    # Add opponent model identifier to filename if possible
+    opponent_model_shortname = os.path.basename(OPPONENT_MODEL_PATH).split('_ep')[0] # e.g., dqn_sparse_vs_random
+    plot_filename += f'_{opponent_model_shortname}'
+plot_filename += f'_ep{NUM_EPISODES}_{timestamp}.png'
+
+plot_save_path = os.path.join(PLOT_DIR, plot_filename)
 plt.savefig(plot_save_path)
 print(f"Plot saved to: {plot_save_path}")
 
