@@ -296,28 +296,25 @@ if len(ma_episodes) != len(ma_win_rate) and len(ma_win_rate) > 0:
 elif len(ma_win_rate) == 0:
      ma_episodes = np.array([])
 
-# --- Plot 1: Smoothed Win Rate (Top-Left) ---
+# --- Plot 1: Win Rate (Top-Left) ---
 plt.subplot(2, 2, 1)
 if len(ma_episodes) > 0:
     plt.plot(ma_episodes, ma_win_rate, label=f'Win Rate (MA {window_size})', color='green')
-    # Optionally add loss/draw MA here too if desired
-    # plt.plot(ma_episodes, ma_loss_rate, label=f'Loss Rate (MA {window_size})', color='red', alpha=0.6)
-    # plt.plot(ma_episodes, ma_draw_rate, label=f'Draw Rate (MA {window_size})', color='blue', alpha=0.6)
 else:
     plt.text(0.5, 0.5, 'Not enough data for MA', ha='center', va='center')
-plt.title('Smoothed Win Rate')
+plt.title('Win Rate')  # Remove "Smoothed"
 plt.xlabel('Episodes')
 plt.ylabel('Rate')
 plt.legend()
 plt.grid(True)
 
-# --- Plot 2: Smoothed Average Reward (Top-Right) ---
+# --- Plot 2: Average Reward (Top-Right) ---
 plt.subplot(2, 2, 2)
 if len(ma_episodes) > 0:
     plt.plot(ma_episodes, ma_reward, label=f'Avg Reward (MA {window_size})', color='purple')
 else:
     plt.text(0.5, 0.5, 'Not enough data for MA', ha='center', va='center')
-plt.title('Smoothed Average Reward')
+plt.title('Average Reward')  # Remove "Smoothed"
 plt.xlabel('Episodes')
 plt.ylabel('Average Reward')
 plt.legend()
@@ -338,12 +335,12 @@ plt.grid(True)
 # --- Plot 4: Raw Win/Loss/Draw Rates (Bottom-Right) ---
 plt.subplot(2, 2, 4)
 if len(episodes_axis) > 0:
-    plt.plot(episodes_axis, win_history, label='Win Rate (Raw)', color='green', alpha=0.7)
-    plt.plot(episodes_axis, loss_history, label='Loss Rate (Raw)', color='red', alpha=0.7)
-    plt.plot(episodes_axis, draw_history, label='Draw Rate (Raw)', color='blue', alpha=0.7)
+    plt.scatter(episodes_axis, win_history, label='Win (Raw)', color='green', s=6, alpha=0.8)
+    plt.scatter(episodes_axis, loss_history, label='Loss (Raw)', color='red', s=6, alpha=0.5)
+    plt.scatter(episodes_axis, draw_history, label='Draw (Raw)', color='blue', s=12, alpha=0.8)
 else:
-     plt.text(0.5, 0.5, 'No data', ha='center', va='center')
-plt.title('Raw Performance Metrics')
+    plt.text(0.5, 0.5, 'No data', ha='center', va='center')
+plt.title('Performance Metrics')
 plt.xlabel('Episodes')
 plt.ylabel('Rate (0 or 1)')
 plt.legend()
