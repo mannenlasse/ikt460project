@@ -218,6 +218,11 @@ for episode in range(NUM_EPISODES):
 
     # --- End of Episode ---
 
+    # Decay epsilon ONCE per episode (if agent has epsilon)
+    if hasattr(agent, 'epsilon') and hasattr(agent, 'epsilon_min') and hasattr(agent, 'epsilon_decay'):
+        if agent.epsilon > agent.epsilon_min:
+            agent.epsilon *= agent.epsilon_decay
+
     # Record episode outcome
     if game.winner == agent.player_id:
         win_history.append(1)

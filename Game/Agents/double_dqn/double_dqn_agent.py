@@ -155,8 +155,8 @@ class DoubleDQNAgent:
 
 
         # Decay epsilon
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
+        # if self.epsilon > self.epsilon_min:
+        #     self.epsilon *= self.epsilon_decay
 
         # Update target network periodically
         self.train_step_counter += 1
