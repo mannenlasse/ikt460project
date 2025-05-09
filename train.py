@@ -33,29 +33,35 @@ WIN_LENGTH = 4
 
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description='Train an Agent for Connect Four.')
-parser.add_argument('--model', type=str, required=True, choices=['dqn'], help='Type of model/agent to train (e.g., dqn).') # Add more choices like 'ppo' later
+parser.add_argument('--model', type=str, required=True, choices=['dqn', 'qlearn', 'ppo'], help='Type of model/agent to train (e.g., dqn).') # Add more choices like 'ppo' later
 parser.add_argument('--opponent', type=str, default='random', choices=['random', 'dqn_model'], help='Type of opponent agent (random or a loaded dqn_model).')
 parser.add_argument('--opponent_model_path', type=str, default=None, help='Path to the pre-trained opponent model file (.pt) if opponent is dqn_model.')
 parser.add_argument('--reward_type', type=str, default='sparse', choices=['sparse', 'shaped'], help='Type of reward structure.')
 parser.add_argument('--episodes', type=int, default=10000, help='Number of episodes to train.')
 parser.add_argument('--save_freq', type=int, default=5000, help='Frequency (in episodes) to save the model.')
 parser.add_argument('--lr', type=float, default=0.001, help='Learning rate.')
+
 # Add other relevant hyperparameters as needed (e.g., batch_size, memory_size for DQN)
 parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training (if applicable).')
 parser.add_argument('--memory_size', type=int, default=50000, help='Replay memory size (if applicable).')
 
+
+
 args = parser.parse_args()
 
 # Assign args to variables
-NUM_EPISODES = args.episodes
-REWARD_TYPE = args.reward_type
-SAVE_FREQUENCY = args.save_freq
-LEARNING_RATE = args.lr
 MODEL_TYPE = args.model
 OPPONENT_TYPE = args.opponent
+OPPONENT_MODEL_PATH = args.opponent_model_path # New variable
+REWARD_TYPE = args.reward_type
+NUM_EPISODES = args.episodes
+SAVE_FREQUENCY = args.save_freq
+LEARNING_RATE = args.lr
+
+
 BATCH_SIZE = args.batch_size
 MEMORY_SIZE = args.memory_size
-OPPONENT_MODEL_PATH = args.opponent_model_path # New variable
+
 
 # --- Agent Initialization ---
 agent = None
@@ -101,9 +107,10 @@ elif OPPONENT_TYPE == 'dqn_model':
         board_width=BOARD_WIDTH,
         action_size=BOARD_WIDTH,
         learning_rate=0, # Does not learn
-        epsilon=0,       # Always chooses the best action (greedy)
-        epsilon_decay=1, # No decay
-        epsilon_min=0
+        gamma = 0.09,
+        epsilon=1.0,       # Always chooses the best action (greedy)
+        epsilon_min=0.01, # No decay
+        epsilon_decay=0.995
     )
     # Load the saved state dictionary
     opponent.load_model(OPPONENT_MODEL_PATH)
