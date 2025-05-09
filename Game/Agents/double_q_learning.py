@@ -4,9 +4,9 @@ import random
 from collections import defaultdict
 
 class QlearnAgent(Agent):
-    def __init__(self, Current_Player, learn_rate, disc_factor, explor_rate, explor_decay):
+    def __init__(self, player_id, learn_rate, disc_factor, explor_rate, explor_decay):
     
-        self.current_player = Current_Player
+        self.Player_Id = player_id
 
         self.alpha = learn_rate  # learning rate
         self.gamma = disc_factor # discounting factor, how much do future rewards matter

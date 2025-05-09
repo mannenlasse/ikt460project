@@ -26,15 +26,13 @@ class DoubleDQNAgent:
                  learning_rate=0.001, gamma=0.99, epsilon=1.0,
                  epsilon_min=0.01, epsilon_decay=0.995, memory_size=10000,
                  batch_size=64, update_target_freq=10):
-
-
         self.player_id = player_id
+        self.board_height = board_height
+        self.board_width = board_width
+        self.state_size = board_height * board_width
+        self.action_size = action_size
 
-        # Dynamically derive board shape and state size
-        self.state_size = game.board.size  # total number of cells
-        self.action_size = action_size if action_size is not None else game.board.shape[1]
-
-        # Store other params
+        # Hyperparameters
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
@@ -46,6 +44,7 @@ class DoubleDQNAgent:
 
         # Experience replay memory
         self.memory = deque(maxlen=memory_size)
+
 
         # Set device for GPU acceleration
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

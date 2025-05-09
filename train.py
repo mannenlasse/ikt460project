@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 project_root = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
+
 # Import necessary components
 from Game.game import Game
 from Game.Agents.random_agent import RandomAgent
@@ -119,6 +120,19 @@ elif OPPONENT_TYPE == 'dqn_model':
     if hasattr(opponent, 'target_model'): # Ensure target model is also in eval if exists
         opponent.target_model.eval()
     print("DQN Opponent loaded successfully.")
+
+
+
+elif MODEL_TYPE == 'qlearn':
+    print(f"Initializing Double Q-Learning Agent...")
+    agent = QlearnAgent(
+        Current_Player=1,
+        learn_rate=LEARNING_RATE,
+        disc_factor=args.gamma,
+        explor_rate=args.epsilon,
+        explor_decay=args.epsilon_decay
+    )
+
 
 else:
     print(f"Error: Unknown opponent type '{OPPONENT_TYPE}'")
