@@ -7,25 +7,24 @@ from Agents.double_dqn.double_dqn_agent import DoubleDQNAgent
 import os
 
 
+board_height = 6
+board_width = 7
+number_of_players = 2
+winnding_length = 3
 
 # height --- width --- numvber of players --- winning length #
-game = Game(6, 7, 2, 4)
+game = Game(board_height, board_width, number_of_players, winnding_length)
 
 # Initialiser DQN-agenten og last inn trent modell
-dqn_agent = DoubleDQNAgent(
-    player_id=1,
-    board_height=6,
-    board_width=7,
-    action_size=7,
-    # Add reward_type if you want to specify it here,
-    # otherwise it defaults (we'll add default in the class)
-    # reward_type='sparse' # Or 'shaped'
-)
+dqn_agent = DoubleDQNAgent(player_id=1, game=game,action_size=game.board_width)
+
+
 # Update path in load_model call
 dqn_agent.load_model("Agents/double_dqn/models/dqn_agent_final.pt")
 dqn_agent.epsilon = 0.0  # Ingen utforskning, kun utnyttelse
 
-# Bruk DQN-agent som spiller 1, Random_Agent_2 som spiller 2
+
+
 agents = [dqn_agent, Random_Agent_2(1)]
 
 print("main.py: Game started!\n")
