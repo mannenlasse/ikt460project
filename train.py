@@ -26,10 +26,9 @@ PLOT_DIR = os.path.join(project_root, 'plots')
 os.makedirs(PLOT_DIR, exist_ok=True)
 
 
-# --- Game Parameters (Defaults) ---
-BOARD_HEIGHT = 6
-BOARD_WIDTH = 7
-NUM_PLAYERS = 2
+# --- Game Parameters (but number of plyers is listed down below) ---
+BOARD_HEIGHT = 20
+BOARD_WIDTH = 22
 WIN_LENGTH = 4
 
 # --- Argument Parsing ---
@@ -47,7 +46,6 @@ parser.add_argument('--batch_size', type=int, default=64, help='Batch size for t
 parser.add_argument('--memory_size', type=int, default=50000, help='Replay memory size (if applicable).')
 
 
-
 args = parser.parse_args()
 
 # Assign args to variables
@@ -58,13 +56,13 @@ REWARD_TYPE = args.reward_type
 NUM_EPISODES = args.episodes
 SAVE_FREQUENCY = args.save_freq
 LEARNING_RATE = args.lr
-
-
 BATCH_SIZE = args.batch_size
 MEMORY_SIZE = args.memory_size
 
 
+
 # --- Agent Initialization ---
+
 agent = None
 if MODEL_TYPE == 'dqn':
     from Game.Agents.double_dqn.double_dqn_agent import DoubleDQNAgent
@@ -87,56 +85,61 @@ else:
     print(f"Error: Unknown model type '{MODEL_TYPE}'")
     sys.exit(1)
 
+
+
 # --- Opponent Initialization ---
-opponent = None
-if OPPONENT_TYPE == 'random':
-    print(f"Initializing Random Opponent...")
-    opponent = RandomAgent(Current_Player=2) # Assign ID 2
-elif OPPONENT_TYPE == 'dqn_model':
-    if OPPONENT_MODEL_PATH is None:
-        print("Error: --opponent_model_path must be specified when --opponent is 'dqn_model'")
-        sys.exit(1)
-    if not os.path.exists(OPPONENT_MODEL_PATH):
-        print(f"Error: Opponent model file not found at {OPPONENT_MODEL_PATH}")
-        sys.exit(1)
+# Define the full list of opponents (can be mixed: random or dqn with model path)
+def build_player_map(agent, opponent_defs, board_height, board_width, board_cols):
+    player_map = {1: agent}  # Learning agent always player 1
 
-    print(f"Loading DQN Opponent from {OPPONENT_MODEL_PATH}...")
-    # Initialize a DQN agent structure first (parameters like LR don't matter for inference)
-    opponent = DoubleDQNAgent(
-        player_id=2, # Opponent is player 2
-        board_height=BOARD_HEIGHT,
-        board_width=BOARD_WIDTH,
-        action_size=BOARD_WIDTH,
-        learning_rate=0, # Does not learn
-        gamma = 0.09,
-        epsilon=1.0,       # Always chooses the best action (greedy)
-        epsilon_min=0.01, # No decay
-        epsilon_decay=0.995
-    )
-    # Load the saved state dictionary
-    opponent.load_model(OPPONENT_MODEL_PATH)
-    # Set the opponent model to evaluation mode (important!)
-    opponent.model.eval()
-    if hasattr(opponent, 'target_model'): # Ensure target model is also in eval if exists
-        opponent.target_model.eval()
-    print("DQN Opponent loaded successfully.")
+    for i, (kind, model_path) in enumerate(opponent_defs):
+        pid = i + 2  # Opponent player IDs start at 2
 
+        if kind == "random":
+            player_map[pid] = RandomAgent(Current_Player=pid)
 
+        elif kind == "dqn":
+            dqn = DoubleDQNAgent(
+                player_id=pid,
+                board_height=board_height,
+                board_width=board_width,
+                action_size=board_cols,
+                learning_rate=0.0,
+                gamma=0.99,
+                epsilon=0.0,
+                epsilon_min=0.0,
+                epsilon_decay=1.0
+            )
+            if model_path:
+                dqn.load_model(model_path)
+                dqn.model.eval()
+                if hasattr(dqn, "target_model"):
+                    dqn.target_model.eval()
+            player_map[pid] = dqn
 
-elif MODEL_TYPE == 'qlearn':
-    print(f"Initializing Double Q-Learning Agent...")
-    agent = QlearnAgent(
-        Current_Player=1,
-        learn_rate=LEARNING_RATE,
-        disc_factor=args.gamma,
-        explor_rate=args.epsilon,
-        explor_decay=args.epsilon_decay
-    )
+        else:
+            raise ValueError(f"Unknown agent type: {kind}")
+
+    for pid, agent_obj in sorted(player_map.items()):
+        print(f"   Player {pid}: {type(agent_obj).__name__}", flush=True)
+
+    return player_map
 
 
-else:
-    print(f"Error: Unknown opponent type '{OPPONENT_TYPE}'")
-    sys.exit(1)
+
+
+
+opponent_definitions = [("random", None)] * 67  # Fill to 70 players total (69 + agent = 70)
+
+NUM_PLAYERS = len(opponent_definitions) + 1
+
+player_map = build_player_map(agent, opponent_definitions, BOARD_HEIGHT, BOARD_WIDTH, BOARD_WIDTH)
+for pid, agent_obj in player_map.items():
+    print(f"  Player {pid}: {type(agent_obj).__name__}")
+
+
+
+
 
 
 # --- GPU Acceleration (If agent supports it) ---
@@ -149,6 +152,9 @@ if hasattr(agent, 'target_model') and hasattr(agent.target_model, 'to'): # For D
     agent.target_model.to(device)
 # Add similar checks/calls for other frameworks or model structures if needed
 
+
+
+
 # --- Statistics Tracking ---
 win_history = []
 loss_history = []
@@ -156,8 +162,15 @@ draw_history = []
 reward_history = []
 epsilon_history = [] # Specific to agents with epsilon (like DQN)
 
+
+
+
+
 # Get current timestamp for unique filenames
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+
 
 # --- Training Loop ---
 print(f"\n--- Starting Training ---")
@@ -176,24 +189,17 @@ for episode in range(NUM_EPISODES):
         current_agent = None
         is_learning_agent_turn = False
 
-        if current_player_id == agent.player_id:
-            current_agent = agent
-            is_learning_agent_turn = True
-            # Get state representation needed by the learning agent
-            if hasattr(agent, 'get_state'):
-                 state = agent.get_state(game)
-            else:
-                 # Handle state representation for other agent types if needed
-                 state = game.board.flatten() # Default fallback?
+        current_agent = player_map[current_player_id]
+        is_learning_agent_turn = (current_player_id == agent.player_id)
+
+        if isinstance(current_agent, RandomAgent):
+            action = current_agent.select_action(game, player_id=current_player_id)
         else:
-            current_agent = opponent
-            # Ensure opponent knows its ID if needed by its select_action
-            if hasattr(opponent, 'current_player'):
-                 opponent.current_player = current_player_id
+            if hasattr(current_agent, 'current_player'):
+                current_agent.current_player = current_player_id
+            action = current_agent.select_action(game)
 
-        # Select action
-        action = current_agent.select_action(game)
-
+        
         # Handle board full before move attempt (if select_action returns None)
         if action is None:
             done = True
@@ -265,6 +271,8 @@ for episode in range(NUM_EPISODES):
                 game.current_player = (game.current_player % NUM_PLAYERS) + 1
 
     # --- End of Episode ---
+
+
 
     # Decay epsilon ONCE per episode (if agent has epsilon)
     if hasattr(agent, 'epsilon') and hasattr(agent, 'epsilon_min') and hasattr(agent, 'epsilon_decay'):
