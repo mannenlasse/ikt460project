@@ -2,16 +2,19 @@ from .base_agent import Agent
 import numpy as np
 import random 
 from collections import defaultdict
+import pickle
+import os
 
 class QlearnAgent(Agent):
-    def __init__(self, player_id, learn_rate, disc_factor, explor_rate, explor_decay):
-    
-        self.Player_Id = player_id
+    def __init__(self, player_id, learn_rate, disc_factor, explor_rate, explor_decay, epsilon_min=0.01):
+        self.player_id = player_id 
+
 
         self.alpha = learn_rate  # learning rate
         self.gamma = disc_factor # discounting factor, how much do future rewards matter
         self.epsilon = explor_rate
         self.epsilon_decay = explor_decay
+        self.epsilon_min = epsilon_min
 
         #parameters that will track last state and action, currently set to none and will be updated as the game moves on 
         self.last_state = None 
@@ -123,10 +126,18 @@ class QlearnAgent(Agent):
             self.q2[(self.last_state, self.last_action)] = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
 
 
-        # Reset state if episode ended
-        if done:
-            self.last_state = None
-            self.last_action = None
-            self.epsilon *= self.epsilon_decay
 
 
+
+    def save_model(self, file_path):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "wb") as f:
+            pickle.dump({"q1": dict(self.q1), "q2": dict(self.q2)}, f)
+        print(f"QlearnAgent: Q-tables saved to {file_path}")
+
+    def load_model(self, file_path):
+        with open(file_path, "rb") as f:
+            data = pickle.load(f)
+            self.q1 = defaultdict(float, data["q1"])
+            self.q2 = defaultdict(float, data["q2"])
+        print(f"QlearnAgent: Q-tables loaded from {file_path}")

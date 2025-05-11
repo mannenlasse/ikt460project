@@ -16,7 +16,7 @@ from Game.game import Game
 from Game.Agents.random_agent import RandomAgent
 from Game.Agents.double_dqn.double_dqn_agent import DoubleDQNAgent # Import DQN agent for opponent loading
 from Game.reward_utils import calculate_reward # Import the centralized reward function
-
+from Game.Agents.double_q_learning import QlearnAgent
 # --- Central Model Directory ---
 CENTRAL_MODEL_DIR = os.path.join(project_root, 'models')
 os.makedirs(CENTRAL_MODEL_DIR, exist_ok=True)
@@ -27,8 +27,8 @@ os.makedirs(PLOT_DIR, exist_ok=True)
 
 
 # --- Game Parameters (but number of plyers is listed down below) ---
-BOARD_HEIGHT = 20
-BOARD_WIDTH = 22
+BOARD_HEIGHT = 6
+BOARD_WIDTH = 7
 WIN_LENGTH = 4
 
 # --- Argument Parsing ---
@@ -77,6 +77,17 @@ if MODEL_TYPE == 'dqn':
         learning_rate=LEARNING_RATE
         # reward_type is handled externally now
     )
+
+elif MODEL_TYPE == 'qlearn':
+    print(f"Initializing Double Q-Learning Agent...")
+    agent = QlearnAgent(
+        player_id=1,
+        learn_rate=LEARNING_RATE,
+        disc_factor=0.99,  # can add --gamma to CLI if needed
+        explor_rate=1.0,
+        explor_decay=0.995
+    )
+
 # Add elif blocks here for other models like PPO later
 # elif MODEL_TYPE == 'ppo':
 #     from Game.Agents.ppo.ppo_agent import PPOAgent # Example
@@ -89,6 +100,9 @@ else:
 
 # --- Opponent Initialization ---
 # Define the full list of opponents (can be mixed: random or dqn with model path)
+
+
+#hva skjer: this functions maps a player with an id. The agent who is learning is always player 1 while the others players are oppoents and you can chose what kind 
 def build_player_map(agent, opponent_defs, board_height, board_width, board_cols):
     player_map = {1: agent}  # Learning agent always player 1
 
@@ -128,8 +142,8 @@ def build_player_map(agent, opponent_defs, board_height, board_width, board_cols
 
 
 
-
-opponent_definitions = [("random", None)] * 67  # Fill to 70 players total (69 + agent = 70)
+#HERE YOU CHOOSE WHAT KIND OF PLAYERS YOU WANT, SO RIGHT NOW ITS 67 RANDOM PLAYERS
+opponent_definitions = [("random", None)] * 1  # Fill to 70 players total (69 + agent = 70)
 
 NUM_PLAYERS = len(opponent_definitions) + 1
 
@@ -254,12 +268,14 @@ for episode in range(NUM_EPISODES):
                 next_state = game.board.flatten()
 
             # --- Store Experience (if it was the learning agent's turn) ---
-            if is_learning_agent_turn and state is not None:
-                if hasattr(agent, 'remember'):
-                    # Pass the state *before* the action, the action taken, the calculated reward,
-                    # the state *after* the action, and the final done status.
-                    agent.remember(state, action, reward, next_state, done)
-                total_episode_reward += reward # Accumulate reward received by the agent
+            if is_learning_agent_turn:
+                total_episode_reward += reward  
+
+                if state is not None:
+                    if MODEL_TYPE == 'qlearn':
+                        agent.observe(reward, game, done)
+                    elif hasattr(agent, 'remember'):
+                        agent.remember(state, action, reward, next_state, done)
 
             # --- Train Agent (if applicable) ---
             if is_learning_agent_turn and hasattr(agent, 'train'):
@@ -322,6 +338,15 @@ for episode in range(NUM_EPISODES):
         save_path = os.path.join(CENTRAL_MODEL_DIR, filename)
         agent.save_model(save_path)
         # Add the confirmation print statement here
+        print(f"--- Model saved at episode {episode + 1} to {save_path} ---")
+
+
+    if hasattr(agent, 'save_model') and ((episode + 1) % SAVE_FREQUENCY == 0 or episode == NUM_EPISODES - 1):
+        if MODEL_TYPE == "qlearn": ext = ".pkl"
+        elif MODEL_TYPE == "dqn": ext = ".pt"
+        filename = f'{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}_ep{episode + 1}_{timestamp}{ext}'
+        save_path = os.path.join(CENTRAL_MODEL_DIR, filename)
+        agent.save_model(save_path)
         print(f"--- Model saved at episode {episode + 1} to {save_path} ---")
 
 # --- Plotting Results ---
