@@ -65,8 +65,7 @@ class QlearnAgent(Agent):
         #explotation
         else: 
             # Sum Q-values only for valid actions
-            q_sum = {a: self.q1.get((state, a), -0.1) + self.q2.get((state, a), -0.1)
-                    for a in valid_actions}
+            q_sum = {a: self.q1.get((state, a), -0.1) + self.q2.get((state, a), -0.1) for a in valid_actions}
 
             if not q_sum:  # If no valid Q-values
                 action = random.choice(valid_actions)
@@ -90,13 +89,6 @@ class QlearnAgent(Agent):
             return
         
 
-        # Adjust rewards for terminal states
-        if done:
-            if reward > 0:  # Win
-                reward *= 2  # Emphasize winning
-            elif reward < 0:  # Loss
-                reward *= 1.5  # Penalize losses but not as strongly
-
         rando = random.random()
 
         if rando < 0.5: 
@@ -108,13 +100,13 @@ class QlearnAgent(Agent):
             a_ = self.max_action(self.q1, next_state, game)
 
             #Q2(s', argmax_a Q2(s', a))
-            future_q = self.q2.get((next_state, a_), -0.1)
+            future_q = self.q2.get((next_state, a_), 0.0)
 
             #r + γ * Q2(s', argmax_a Q1(s', a))
             rewards_disc_future_q = reward + (0 if done else self.gamma * future_q) 
 
             #Q1(s, a)
-            old_q1 = self.q1.get((self.last_state, self.last_action), -0.1)
+            old_q1 = self.q1.get((self.last_state, self.last_action), -0.0)
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
             self.q1[(self.last_state, self.last_action)] = old_q1 + self.alpha * (rewards_disc_future_q - old_q1)
 
@@ -127,11 +119,11 @@ class QlearnAgent(Agent):
             a_ = self.max_action(self.q2, next_state, game)
 
             #Q2(s', argmax_a Q1(s', a))
-            future_q = self.q1.get((next_state, a_), -0.1)
+            future_q = self.q1.get((next_state, a_), 0.0)
             #r + γ * Q2(s', argmax_a Q1(s', a))
             rewards_disc_future_q = reward + (0 if done else self.gamma * future_q)  
             #Q1(s, a)
-            old_q2 = self.q2.get((self.last_state, self.last_action), -0.1)
+            old_q2 = self.q2.get((self.last_state, self.last_action), 0.0)
 
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
             self.q2[(self.last_state, self.last_action)] = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
