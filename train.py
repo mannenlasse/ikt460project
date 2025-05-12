@@ -51,7 +51,7 @@ args = parser.parse_args()
 # Assign args to variables
 MODEL_TYPE = args.model
 OPPONENT_TYPE = args.opponent
-OPPONENT_MODEL_PATH = args.opponent_model_path # New variable
+OPPONENT_MODEL_PATH = args.opponent_model_path 
 REWARD_TYPE = args.reward_type
 NUM_EPISODES = args.episodes
 SAVE_FREQUENCY = args.save_freq
@@ -167,8 +167,6 @@ if hasattr(agent, 'target_model') and hasattr(agent.target_model, 'to'): # For D
 # Add similar checks/calls for other frameworks or model structures if needed
 
 
-
-
 # --- Statistics Tracking ---
 win_history = []
 loss_history = []
@@ -177,12 +175,8 @@ reward_history = []
 epsilon_history = [] 
 
 
-
-
-
 # Get current timestamp for unique filenames
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
 
 
 
@@ -209,50 +203,43 @@ for episode in range(NUM_EPISODES):
 
         is_learning_agent_turn = (current_player_id == agent.player_id)
 
-
         action = current_agent.select_action(game)
 
-        
-        # Handle board full before move attempt (if select_action returns None)
+        # Handle board full before attemtping a move
         if action is None:
             done = True
             # If it was the learning agent's turn to move but couldn't, store the final transition.
             if is_learning_agent_turn and state is not None and hasattr(agent, 'remember'):
-                 # Get the final state
+                 # Get the final state or at least the current state
                  next_state = agent.get_state(game) if hasattr(agent, 'get_state') else state
-                 # Calculate reward for the agent's perspective for this final state (draw = 0 usually)
+                
+                 # calcuate reward during last state to learn
                  final_reward = calculate_reward(game, agent.player_id, -1, -1, True, REWARD_TYPE) # Use dummy row/col
-                 # Store experience. The agent's remember method needs to handle cases where action might be None
-                 # or we need a placeholder. DoubleDQNAgent expects an int action. Let's pass -1 as a placeholder.
-                 # Ensure your DoubleDQNAgent.remember can handle action=-1 or modify if needed.
-                 # For now, assuming -1 is acceptable or handled.
-                 agent.remember(state, -1, final_reward, next_state, True) # Use action = -1 placeholder
-                 total_episode_reward += final_reward # Add final reward if any
-            # No move was made, break the inner loop
-            break # Exit the while loop immediately after handling the no-action state
+ 
+                #store what has happened so that the agent learns
+                 agent.remember(state, -1, final_reward, next_state, True) 
 
+                #track total reward
+                 total_episode_reward += final_reward 
+            break 
         else:
-            # --- Make the move ---
-            # Ensure make_move returns row, col or handles errors appropriately
-            # Assuming make_move returns (row, col) on success and raises error or returns None/False on failure
+            #Making the move
             try:
-                row, col = game.make_move(action) # Get row and col where piece landed
-            except Exception as e: # Or check return value if make_move indicates failure differently
+                #dropping the piece in a column and retuning row and column
+                row, col = game.make_move(action) #
+            #check error with the index(so invalid drops) 
+            except Exception as e:
                 print(f"Error during make_move for action {action}: {e}")
-                # Decide how to handle invalid move attempt (e.g., skip turn, end game?)
-                # For now, let's assume make_move is robust or select_action only gives valid moves.
-                # If make_move could fail gracefully, add handling here.
-                # Let's assume it works if action was valid.
-                pass # Continue assuming make_move succeeded if no exception
+                pass
 
-            # --- Check if game is over (using methods from train_dqn.py) ---
-            # Check win first
-            if game.winning_moves(row, col): # Use winning_moves like in train_dqn.py
+            # checks if the move creates a win condition
+            if game.winning_moves(row, col): 
                 done = True
-            # Check draw only if not won
-            elif not game.get_valid_columns(): # Use get_valid_columns like in train_dqn.py
+
+            # if the board is full regardless, end the game
+            elif not game.get_valid_columns(): 
                 done = True
-            # else: done remains False
+
 
             # --- Calculate Reward ---
             # Reward is calculated *after* the move and win/draw check, using the 'done' status
@@ -266,28 +253,26 @@ for episode in range(NUM_EPISODES):
                 # Default fallback if agent doesn't have a specific get_state
                 next_state = game.board.flatten()
 
-            # --- Store Experience (if it was the learning agent's turn) ---
+            # storing expereince n updates for learning agent
             if is_learning_agent_turn:
                 total_episode_reward += reward  
 
                 if state is not None:
                     if MODEL_TYPE == 'qlearn':
                         agent.observe(reward, game, done)
-                    elif hasattr(agent, 'remember'):
+                    if MODEL_TYPE == 'dqn':
                         agent.remember(state, action, reward, next_state, done)
 
-            # --- Train Agent (if applicable) ---
+            #  Train Agent after storing experience
             if is_learning_agent_turn and hasattr(agent, 'train'):
-                 # Train after storing experience
                  agent.train()
 
-            # --- Switch player only if game not done ---
+            # Switch player if game not done 
             if not done:
                 game.current_player = (game.current_player % NUM_PLAYERS) + 1
 
+
     # --- End of Episode ---
-
-
 
     # Decay epsilon ONCE per episode (if agent has epsilon)
     if hasattr(agent, 'epsilon') and hasattr(agent, 'epsilon_min') and hasattr(agent, 'epsilon_decay'):
@@ -307,6 +292,10 @@ for episode in range(NUM_EPISODES):
         win_history.append(0)
         loss_history.append(0)
         draw_history.append(1)
+
+
+
+
 
     # Record other statistics
     reward_history.append(total_episode_reward)
