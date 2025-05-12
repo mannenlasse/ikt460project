@@ -17,6 +17,8 @@ from Game.Agents.random_agent import RandomAgent
 from Game.Agents.double_dqn.double_dqn_agent import DoubleDQNAgent # Import DQN agent for opponent loading
 from Game.reward_utils import calculate_reward # Import the centralized reward function
 from Game.Agents.double_q_learning import QlearnAgent
+from Game.Agents.ppo_agent import PPOAgent
+
 # --- Central Model Directory ---
 CENTRAL_MODEL_DIR = os.path.join(project_root, 'models')
 os.makedirs(CENTRAL_MODEL_DIR, exist_ok=True)
@@ -89,6 +91,18 @@ elif MODEL_TYPE == 'qlearn':
         disc_factor=0.99,  # can add --gamma to CLI if needed
         explor_rate=1.0,
         explor_decay=0.995
+    )
+
+
+elif MODEL_TYPE == 'ppo':
+    print(f"Initializing PPO Agent...")
+    agent = PPOAgent(
+        player_id=1,
+        state_dim=BOARD_HEIGHT * BOARD_WIDTH,  # Flattened board size
+        action_dim=BOARD_WIDTH,                # Number of possible actions (columns)
+        lr=LEARNING_RATE,
+        gamma=0.99,
+        clip_epsilon=0.2
     )
 
 # Add elif blocks here for other models like PPO later
@@ -265,6 +279,10 @@ for episode in range(NUM_EPISODES):
                         agent.observe(reward, game, done)
                     if MODEL_TYPE == 'dqn':
                         agent.remember(state, action, reward, next_state, done)
+                    if MODEL_TYPE == 'ppo':
+                        agent.store_outcome(reward, done)
+
+
 
             #  Train Agent after storing experience
             if is_learning_agent_turn and hasattr(agent, 'train'):

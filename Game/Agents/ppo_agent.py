@@ -17,6 +17,7 @@ class PolicyNetwork(nn.Module):
         logits = self.fc3(x)
         return logits
 
+
 class PPOAgent:
     def __init__(self, player_id, state_dim, action_dim, lr=1e-3, gamma=0.99, clip_epsilon=0.2):
         self.player_id = player_id
@@ -51,14 +52,27 @@ class PPOAgent:
         dist = Categorical(probs)
         action = dist.sample()
 
-        self.memory.append((state, action, dist.log_prob(action)))
-        
+        #self.memory.append((state, action, dist.log_prob(action)))HEI
+        self.memory.append((state, action, dist.log_prob(action), None, None))
+
         return action.item()
 
     def store_outcome(self, reward, done):
-        self.memory[-1] += (reward, done)
+        #HEI
+        # self.memory[-1] += (reward, done)
+
+
+        # Get the last stored experience
+        last_state, last_action, last_log_prob, _, _ = self.memory[-1]
+        # Update with the reward and done values
+        self.memory[-1] = (last_state, last_action, last_log_prob, reward, done)
 
     def train(self):
+
+        # Check if we have any valid experiencesHEI
+        if not self.memory or any(None in experience for experience in self.memory):
+            return  # Don't train if we have incomplete experiences
+
         # Unpack memory
         states, actions, log_probs_old, rewards, dones = zip(*self.memory)
 
