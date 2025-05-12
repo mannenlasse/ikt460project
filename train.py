@@ -339,36 +339,70 @@ for episode in range(NUM_EPISODES):
              print() # Newline if no epsilon
         print("-" * 50)
 
-    # Save model periodically and at the end
-    if hasattr(agent, 'save_model') and ( (episode + 1) % SAVE_FREQUENCY == 0 or episode == NUM_EPISODES - 1 ):
-        # Construct filename: modelType_rewardType_vs_opponentType_ep<N>_timestamp.pt
-        filename = f'{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}_ep{episode + 1}_{timestamp}.pt'
-        save_path = os.path.join(CENTRAL_MODEL_DIR, filename)
-        agent.save_model(save_path)
-        # Add the confirmation print statement here
-        print(f"--- Model saved at episode {episode + 1} to {save_path} ---")
-
-
+    # Add this function near the top of the file, after the imports but before the training loop
+    def get_next_version(base_filename):
+        """Find the next available version number for a file"""
+        i = 1
+        while True:
+            if i == 1:
+                test_filename = base_filename
+            else:
+                # Insert version number before the file extension
+                name_parts = base_filename.rsplit('.', 1)
+                test_filename = f"{name_parts[0]}_v{i}.{name_parts[1]}"
+            
+            if not os.path.exists(test_filename):
+                return test_filename
+            i += 1
+    
+    # Then remove the function definition from inside the model saving block
+    # In the model saving section, change:
     if hasattr(agent, 'save_model') and ((episode + 1) % SAVE_FREQUENCY == 0 or episode == NUM_EPISODES - 1):
-        if MODEL_TYPE == "qlearn": ext = ".pkl"
-        elif MODEL_TYPE == "dqn": ext = ".pt"
-        filename = f'{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}_ep{episode + 1}_{timestamp}{ext}'
+        # Lag en kompakt beskrivelse av motstandere for filnavnet
+        from collections import Counter
+        opponent_types = [kind for kind, _ in opponent_definitions]
+        opponent_counts = Counter(opponent_types)
+        
+        opponent_filename_parts = []
+        for kind, count in opponent_counts.items():
+            opponent_filename_parts.append(f"{count}x{kind}")
+        
+        opponents_str = "_".join(opponent_filename_parts)
+        
+        # Inkluder brettdimensjoner og win_length i filnavnet
+        board_info = f"{BOARD_HEIGHT}x{BOARD_WIDTH}"
+        win_info = f"win{WIN_LENGTH}"
+        
+        # Konstruer filnavn: modelType_rewardType_vs_opponents_boardSize_winLength_epN.pt
+        if MODEL_TYPE == "qlearn":
+            ext = ".pkl"
+        else:
+            ext = ".pt"
+        
+        filename = f'{MODEL_TYPE}_{REWARD_TYPE}_vs_{opponents_str}_{board_info}_{win_info}_ep{episode + 1}{ext}'
         save_path = os.path.join(CENTRAL_MODEL_DIR, filename)
-        agent.save_model(save_path)
-        print(f"--- Model saved at episode {episode + 1} to {save_path} ---")
+        save_path = get_next_version(save_path)  # Use the function here
+        
+        # Debug-utskrift for å verifisere at lagringsfunksjonen blir kalt
+        print(f"Attempting to save model to: {save_path}")
+        
+        # Sørg for at mappen eksisterer
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        
+        try:
+            agent.save_model(save_path)
+            print(f"--- Model successfully saved at episode {episode + 1} to {save_path} ---")
+        except Exception as e:
+            print(f"Error saving model: {e}")
 
 
+# Optionally display the plot
+# plt.show()
 
+print("\n--- Training Complete ---")
 
-
-
-
-
-
-
+# After the training loop is complete, generate the plots
 # --- Plotting Results ---
-# Corrected from sprint to print
-print("\n--- Generating Plots ---")
 plt.figure(figsize=(15, 10)) # Adjusted figure size for 4 plots
 
 # --- Data Preparation for Plots ---
@@ -376,101 +410,139 @@ window_size = 100 # Moving average window
 episodes_axis = np.arange(1, NUM_EPISODES + 1)
 
 def moving_average(data, window):
+    if len(data) == 0:
+        return np.array([])
     actual_window = min(len(data), window)
-    if actual_window == 0: return np.array([])
+    if actual_window == 0: 
+        return np.array([])
     return np.convolve(data, np.ones(actual_window)/actual_window, mode='valid')
 
-ma_win_rate = moving_average(win_history, window_size)
-ma_loss_rate = moving_average(loss_history, window_size) # Still needed for comparison if desired, or remove if not plotting MA loss
-ma_draw_rate = moving_average(draw_history, window_size) # Still needed for comparison if desired, or remove if not plotting MA draw
-ma_reward = moving_average(reward_history, window_size)
+# Ensure we have data to plot
+if len(win_history) > 0:
+    ma_win_rate = moving_average(win_history, window_size)
+    ma_reward = moving_average(reward_history, window_size)
 
-actual_window_used = min(len(episodes_axis), window_size)
-ma_episodes = episodes_axis[actual_window_used - 1:] if actual_window_used > 0 else np.array([])
+    # Calculate the correct episodes for moving average
+    ma_episodes = episodes_axis[window_size-1:] if len(ma_win_rate) > 0 else np.array([])
 
-# Ensure lengths match for MA plots (simple safeguard)
-if len(ma_episodes) != len(ma_win_rate) and len(ma_win_rate) > 0:
-    ma_episodes = episodes_axis[len(episodes_axis)-len(ma_win_rate):]
-elif len(ma_win_rate) == 0:
-     ma_episodes = np.array([])
+    # --- Plot 1: Win Rate (Top-Left) ---
+    plt.subplot(2, 2, 1)
+    if len(ma_episodes) > 0:
+        plt.plot(ma_episodes, ma_win_rate, label=f'Win Rate (MA {window_size})', color='green')
+        plt.plot(episodes_axis, win_history, alpha=0.3, color='lightgreen')
+    else:
+        plt.plot(episodes_axis, win_history, label='Win Rate', color='green')
+    plt.title('Win Rate')
+    plt.xlabel('Episodes')
+    plt.ylabel('Rate')
+    plt.ylim(-0.1, 1.1)  # Set y-axis limits for win rate
+    plt.legend()
+    plt.grid(True)
 
-# --- Plot 1: Win Rate (Top-Left) ---
-plt.subplot(2, 2, 1)
-if len(ma_episodes) > 0:
-    plt.plot(ma_episodes, ma_win_rate, label=f'Win Rate (MA {window_size})', color='green')
+    # --- Plot 2: Average Reward (Top-Right) ---
+    plt.subplot(2, 2, 2)
+    if len(ma_episodes) > 0:
+        plt.plot(ma_episodes, ma_reward, label=f'Avg Reward (MA {window_size})', color='purple')
+        plt.plot(episodes_axis, reward_history, alpha=0.3, color='plum')
+    else:
+        plt.plot(episodes_axis, reward_history, label='Avg Reward', color='purple')
+    plt.title('Average Reward')
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Reward')
+    plt.legend()
+    plt.grid(True)
+
+    # --- Plot 3: Epsilon Decay (Bottom-Left) ---
+    plt.subplot(2, 2, 3)
+    if epsilon_history and len(episodes_axis) > 0:
+        plt.plot(episodes_axis, epsilon_history, label='Epsilon', color='red', linestyle=':')
+        plt.ylabel('Epsilon')
+    else:
+        plt.text(0.5, 0.5, 'No Epsilon data', ha='center', va='center')
+    plt.title('Epsilon Decay')
+    plt.xlabel('Episodes')
+    plt.ylim(-0.1, 1.1)  # Set y-axis limits for epsilon
+    plt.legend()
+    plt.grid(True)
+
+    # --- Plot 4: Learning Progress (Bottom-Right) ---
+    plt.subplot(2, 2, 4)
+    if len(win_history) > window_size:
+        # Calculate win rate improvement over time
+        window = 100
+        improvement = []
+        for i in range(window, len(win_history), window):
+            prev_win_rate = np.mean(win_history[i-window:i])
+            curr_win_rate = np.mean(win_history[i:min(i+window, len(win_history))])
+            improvement.append(curr_win_rate - prev_win_rate)
+        
+        # Plot improvement
+        x = np.arange(window, len(win_history), window)[:len(improvement)]
+        plt.bar(x, improvement, width=window*0.8, color='purple')
+        plt.axhline(y=0, color='gray', linestyle='-', alpha=0.5)
+        
+        # Find the max absolute value for symmetric y-axis limits
+        max_abs_change = max(abs(min(improvement)), abs(max(improvement))) if improvement else 0.2
+        # Add 20% padding and round to nearest 0.05
+        y_limit = min(0.3, round(max_abs_change * 1.2 * 20) / 20)
+        plt.ylim(-y_limit, y_limit)  # Set symmetric limits around zero
+        
+        # Updated title and y-axis label
+        plt.title('Learning Progress')
+        plt.xlabel('Episodes')
+        plt.ylabel('Win Rate Change')
+        plt.grid(True, axis='y')
+    else:
+        plt.text(0.5, 0.5, 'Not enough data for learning progress', ha='center', va='center')
+        plt.title('Learning Progress')
+        plt.xlabel('Episodes')
+        plt.ylabel('Win Rate Change')
+    
+
 else:
-    plt.text(0.5, 0.5, 'Not enough data for MA', ha='center', va='center')
-plt.title('Win Rate')  # Remove "Smoothed"
-plt.xlabel('Episodes')
-plt.ylabel('Rate')
-plt.legend()
-plt.grid(True)
+    # If no data, display a message
+    plt.text(0.5, 0.5, 'No training data available', ha='center', va='center', transform=plt.gcf().transFigure)
 
-# --- Plot 2: Average Reward (Top-Right) ---
-plt.subplot(2, 2, 2)
-if len(ma_episodes) > 0:
-    plt.plot(ma_episodes, ma_reward, label=f'Avg Reward (MA {window_size})', color='purple')
-else:
-    plt.text(0.5, 0.5, 'Not enough data for MA', ha='center', va='center')
-plt.title('Average Reward')  # Remove "Smoothed"
-plt.xlabel('Episodes')
-plt.ylabel('Average Reward')
-plt.legend()
-plt.grid(True)
+# Create a description of opponents for the plot title
+from collections import Counter
+opponent_types = [kind for kind, _ in opponent_definitions]
+opponent_counts = Counter(opponent_types)
 
-# --- Plot 3: Epsilon Decay (Bottom-Left) ---
-plt.subplot(2, 2, 3)
-if epsilon_history and len(episodes_axis) > 0:
-    plt.plot(episodes_axis, epsilon_history, label='Epsilon', color='red', linestyle=':')
-    plt.ylabel('Epsilon')
-else:
-     plt.text(0.5, 0.5, 'No Epsilon data', ha='center', va='center')
-plt.title('Epsilon Decay')
-plt.xlabel('Episodes')
-plt.legend()
-plt.grid(True)
+# For the plot title
+opponent_desc_list = []
+for kind, count in opponent_counts.items():
+    if kind == "random":
+        opponent_desc_list.append(f"{count}×Random")
+    elif kind == "dqn":
+        opponent_desc_list.append(f"{count}×DQN")
+    elif kind == "ppo":
+        opponent_desc_list.append(f"{count}×PPO")
 
-# --- Plot 4: Raw Win/Loss/Draw Rates (Bottom-Right) ---
-plt.subplot(2, 2, 4)
-if len(episodes_axis) > 0:
-    plt.scatter(episodes_axis, win_history, label='Win (Raw)', color='green', s=6, alpha=0.8)
-    plt.scatter(episodes_axis, loss_history, label='Loss (Raw)', color='red', s=6, alpha=0.5)
-    plt.scatter(episodes_axis, draw_history, label='Draw (Raw)', color='blue', s=12, alpha=0.8)
-else:
-    plt.text(0.5, 0.5, 'No data', ha='center', va='center')
-plt.title('Performance Metrics')
-plt.xlabel('Episodes')
-plt.ylabel('Rate (0 or 1)')
-plt.legend()
-plt.grid(True)
+# Join opponent descriptions
+opponents_title = ", ".join(opponent_desc_list)
 
+# Add board dimensions to title
+board_info = f"{BOARD_HEIGHT}x{BOARD_WIDTH}"
 
-# --- Final Touches ---
-# Add a main title for the whole figure - Update title generation slightly
-opponent_desc = OPPONENT_TYPE.capitalize()
-if OPPONENT_TYPE == 'dqn_model' and OPPONENT_MODEL_PATH:
-    # Extract a meaningful part of the model name for the title
-    opponent_model_name = os.path.basename(OPPONENT_MODEL_PATH).replace('.pt', '')
-    opponent_desc = f"DQN Model ({opponent_model_name})" # More descriptive title
-
-main_plot_title = f'Training Performance: {MODEL_TYPE.upper()} ({REWARD_TYPE}) vs {opponent_desc} ({NUM_EPISODES} Episodes)'
+main_plot_title = f'Training Performance: {MODEL_TYPE.upper()} ({REWARD_TYPE}) vs {opponents_title} ({board_info}, {NUM_EPISODES} Episodes)'
 plt.suptitle(main_plot_title, fontsize=16)
 
 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-# Save the plot - Update plot filename generation
-plot_filename = f'plot_{MODEL_TYPE}_{REWARD_TYPE}_vs_{OPPONENT_TYPE}'
-if OPPONENT_TYPE == 'dqn_model':
-    # Add opponent model identifier to filename if possible
-    opponent_model_shortname = os.path.basename(OPPONENT_MODEL_PATH).split('_ep')[0] # e.g., dqn_sparse_vs_random
-    plot_filename += f'_{opponent_model_shortname}'
-plot_filename += f'_ep{NUM_EPISODES}_{timestamp}.png'
+# For the filename
+opponent_filename_parts = []
+for kind, count in opponent_counts.items():
+    opponent_filename_parts.append(f"{count}x{kind}")
+
+opponents_filename = "_".join(opponent_filename_parts)
+board_info = f"{BOARD_HEIGHT}x{BOARD_WIDTH}"
+win_info = f"win{WIN_LENGTH}"
+plot_filename = f'plot_{MODEL_TYPE}_{REWARD_TYPE}_vs_{opponents_filename}_{board_info}_{win_info}_ep{NUM_EPISODES}.png'
+
+# Make sure the plot directory exists
+os.makedirs(PLOT_DIR, exist_ok=True)
 
 plot_save_path = os.path.join(PLOT_DIR, plot_filename)
+plot_save_path = get_next_version(plot_save_path)
 plt.savefig(plot_save_path)
 print(f"Plot saved to: {plot_save_path}")
-
-# Optionally display the plot
-# plt.show()
-
-print("\n--- Training Complete ---")
