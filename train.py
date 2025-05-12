@@ -27,8 +27,8 @@ os.makedirs(PLOT_DIR, exist_ok=True)
 
 
 # --- Game Parameters (but number of plyers is listed down below) ---
-BOARD_HEIGHT = 6
-BOARD_WIDTH = 7
+BOARD_HEIGHT = 15
+BOARD_WIDTH = 20
 WIN_LENGTH = 4
 
 # --- Argument Parsing ---
@@ -103,21 +103,21 @@ else:
 
 
 #hva skjer: this functions maps a player with an id. The agent who is learning is always player 1 while the others players are oppoents and you can chose what kind 
-def build_player_map(agent, opponent_defs, board_height, board_width, board_cols):
+def build_player_map(agent, opponent_defs, board_height, board_width, board_column):
     player_map = {1: agent}  # Learning agent always player 1
 
     for i, (kind, model_path) in enumerate(opponent_defs):
-        pid = i + 2  # Opponent player IDs start at 2
+        playerid = i + 2  # Opponent player IDs start at 2
 
         if kind == "random":
-            player_map[pid] = RandomAgent(Current_Player=pid)
+            player_map[playerid] = RandomAgent(Current_Player=playerid)
 
         elif kind == "dqn":
             dqn = DoubleDQNAgent(
-                player_id=pid,
+                player_id=playerid,
                 board_height=board_height,
                 board_width=board_width,
-                action_size=board_cols,
+                action_size=board_column,
                 learning_rate=0.0,
                 gamma=0.99,
                 epsilon=0.0,
@@ -129,13 +129,13 @@ def build_player_map(agent, opponent_defs, board_height, board_width, board_cols
                 dqn.model.eval()
                 if hasattr(dqn, "target_model"):
                     dqn.target_model.eval()
-            player_map[pid] = dqn
+            player_map[playerid] = dqn
 
         else:
             raise ValueError(f"Unknown agent type: {kind}")
 
-    for pid, agent_obj in sorted(player_map.items()):
-        print(f"   Player {pid}: {type(agent_obj).__name__}", flush=True)
+    for playerid, agent_obj in sorted(player_map.items()):
+        print(f"   Player {playerid}: {type(agent_obj).__name__}", flush=True)
 
     return player_map
 
@@ -143,13 +143,13 @@ def build_player_map(agent, opponent_defs, board_height, board_width, board_cols
 
 
 #HERE YOU CHOOSE WHAT KIND OF PLAYERS YOU WANT, SO RIGHT NOW ITS 67 RANDOM PLAYERS
-opponent_definitions = [("random", None)] * 1  # Fill to 70 players total (69 + agent = 70)
+opponent_definitions = [("random", None)] * 4  # Fill to 70 players total (69 + agent = 70)
 
 NUM_PLAYERS = len(opponent_definitions) + 1
 
 player_map = build_player_map(agent, opponent_definitions, BOARD_HEIGHT, BOARD_WIDTH, BOARD_WIDTH)
-for pid, agent_obj in player_map.items():
-    print(f"  Player {pid}: {type(agent_obj).__name__}")
+for playerId, agent_obj in player_map.items():
+    print(f"  Player {playerId}: {type(agent_obj).__name__}")
 
 
 
@@ -174,7 +174,7 @@ win_history = []
 loss_history = []
 draw_history = []
 reward_history = []
-epsilon_history = [] # Specific to agents with epsilon (like DQN)
+epsilon_history = [] 
 
 
 
@@ -193,10 +193,12 @@ print(f"Episodes: {NUM_EPISODES}, LR: {LEARNING_RATE}")
 print(f"-------------------------\n")
 
 for episode in range(NUM_EPISODES):
+    #initiate game 
     game = Game(BOARD_HEIGHT, BOARD_WIDTH, NUM_PLAYERS, WIN_LENGTH)
     done = False
+    #reward for one episode to log how good the agent does per game
     total_episode_reward = 0
-    state = None # Initialize state
+    state = None 
 
     while not done:
         current_player_id = game.current_player
@@ -204,14 +206,11 @@ for episode in range(NUM_EPISODES):
         is_learning_agent_turn = False
 
         current_agent = player_map[current_player_id]
+
         is_learning_agent_turn = (current_player_id == agent.player_id)
 
-        if isinstance(current_agent, RandomAgent):
-            action = current_agent.select_action(game, player_id=current_player_id)
-        else:
-            if hasattr(current_agent, 'current_player'):
-                current_agent.current_player = current_player_id
-            action = current_agent.select_action(game)
+
+        action = current_agent.select_action(game)
 
         
         # Handle board full before move attempt (if select_action returns None)
@@ -348,6 +347,15 @@ for episode in range(NUM_EPISODES):
         save_path = os.path.join(CENTRAL_MODEL_DIR, filename)
         agent.save_model(save_path)
         print(f"--- Model saved at episode {episode + 1} to {save_path} ---")
+
+
+
+
+
+
+
+
+
 
 # --- Plotting Results ---
 # Corrected from sprint to print

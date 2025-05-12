@@ -6,7 +6,7 @@ import pickle
 import os
 
 class QlearnAgent(Agent):
-    def __init__(self, player_id, learn_rate, disc_factor, explor_rate, explor_decay, epsilon_min=0.01):
+    def __init__(self, learn_rate, disc_factor, explor_rate, explor_decay, epsilon_min=0.01, player_id = None):
         self.player_id = player_id 
 
 
