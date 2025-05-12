@@ -51,28 +51,32 @@ class QlearnAgent(Agent):
         #defining the set of actions (which column to drop)
         valid_actions = game.get_valid_columns()
 
+        if not valid_actions:
+            return None
+        
 
         #greedy poilcy
         #exploration 
         if random.random() < self.epsilon:
             action = random.choice(valid_actions)
             print("qlearning.py: select_action [explore]: Random action selected due to exploration")
+            return action
 
         #explotation
         else: 
-            q_sum = {a: self.q1.get((state, a), 0.0) + self.q2.get((state, a), 0.0)
-                    for a in game.get_valid_columns()}
+            # Sum Q-values only for valid actions
+            q_sum = {a: self.q1.get((state, a), -0.1) + self.q2.get((state, a), -0.1)
+                    for a in valid_actions}
 
-            max_q = max(q_sum.values())
-            best_actions = [a for a, q in q_sum.items() if q == max_q]
-            action = random.choice(best_actions)
-
+            if not q_sum:  # If no valid Q-values
+                action = random.choice(valid_actions)
+            else:
+                action = max(q_sum.items(), key=lambda x: x[1])[0]
+                
             print("qlearning.py: select_action [exploit]: Best action selected")
-
-        self.last_state = state
-        self.last_action = action
-        return action
-    
+            self.last_state = state
+            self.last_action = action
+            return action
 
 
 
@@ -85,6 +89,14 @@ class QlearnAgent(Agent):
             print("heas no valid action")
             return
         
+
+        # Adjust rewards for terminal states
+        if done:
+            if reward > 0:  # Win
+                reward *= 2  # Emphasize winning
+            elif reward < 0:  # Loss
+                reward *= 1.5  # Penalize losses but not as strongly
+
         rando = random.random()
 
         if rando < 0.5: 
@@ -96,13 +108,13 @@ class QlearnAgent(Agent):
             a_ = self.max_action(self.q1, next_state, game)
 
             #Q2(s', argmax_a Q2(s', a))
-            future_q = self.q2.get((next_state, a_), 0.0)
+            future_q = self.q2.get((next_state, a_), -0.1)
 
             #r + γ * Q2(s', argmax_a Q1(s', a))
-            rewards_disc_future_q = reward + self.gamma * future_q 
+            rewards_disc_future_q = reward + (0 if done else self.gamma * future_q) 
 
             #Q1(s, a)
-            old_q1 = self.q1.get((self.last_state, self.last_action), 0.0)
+            old_q1 = self.q1.get((self.last_state, self.last_action), -0.1)
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
             self.q1[(self.last_state, self.last_action)] = old_q1 + self.alpha * (rewards_disc_future_q - old_q1)
 
@@ -115,12 +127,11 @@ class QlearnAgent(Agent):
             a_ = self.max_action(self.q2, next_state, game)
 
             #Q2(s', argmax_a Q1(s', a))
-            future_q = self.q1.get((next_state, a_), 0.0)
+            future_q = self.q1.get((next_state, a_), -0.1)
             #r + γ * Q2(s', argmax_a Q1(s', a))
-            rewards_disc_future_q = reward + self.gamma * future_q 
-
+            rewards_disc_future_q = reward + (0 if done else self.gamma * future_q)  
             #Q1(s, a)
-            old_q2 = self.q2.get((self.last_state, self.last_action), 0.0)
+            old_q2 = self.q2.get((self.last_state, self.last_action), -0.1)
 
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
             self.q2[(self.last_state, self.last_action)] = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
