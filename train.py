@@ -27,6 +27,9 @@ os.makedirs(PLOT_DIR, exist_ok=True)
 
 
 # --- Game Parameters (but number of plyers is listed down below) ---
+#noraml height: 6 
+#normal width: 7
+#normal winning length: 4
 BOARD_HEIGHT = 15
 BOARD_WIDTH = 20
 WIN_LENGTH = 4
@@ -143,7 +146,7 @@ def build_player_map(agent, opponent_defs, board_height, board_width, board_colu
 
 
 #HERE YOU CHOOSE WHAT KIND OF PLAYERS YOU WANT, SO RIGHT NOW ITS 67 RANDOM PLAYERS
-opponent_definitions = [("random", None)] * 4  # Fill to 70 players total (69 + agent = 70)
+opponent_definitions =  [("random", None)] * 4  # Fill to 70 players total (69 + agent = 70)
 
 NUM_PLAYERS = len(opponent_definitions) + 1
 
@@ -273,7 +276,6 @@ for episode in range(NUM_EPISODES):
 
 
     # --- End of Episode ---
-
     # Decay epsilon ONCE per episode (if agent has epsilon)
     if hasattr(agent, 'epsilon') and hasattr(agent, 'epsilon_min') and hasattr(agent, 'epsilon_decay'):
         if agent.epsilon > agent.epsilon_min:
