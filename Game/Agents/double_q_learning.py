@@ -5,6 +5,8 @@ from collections import defaultdict
 import pickle
 import os
 
+from print import log
+
 class QlearnAgent(Agent):
     def __init__(self, learn_rate, disc_factor, explor_rate, explor_decay, epsilon_min=0.01, player_id = None):
         self.player_id = player_id 
@@ -56,7 +58,7 @@ class QlearnAgent(Agent):
         #exploration 
         if random.random() < self.epsilon:
             action = random.choice(valid_actions)
-            print("qlearning.py: select_action [explore]: Random action selected due to exploration")
+            log("qlearning.py: select_action [explore]: Random action selected due to exploration")
             return action
 
         #explotation
@@ -69,7 +71,7 @@ class QlearnAgent(Agent):
             else:
                 action = max(q_sum.items(), key=lambda x: x[1])[0]
                 
-            print("qlearning.py: select_action [exploit]: Best action selected")
+            log("qlearning.py: select_action [exploit]: Best action selected")
             self.last_state = state
             self.last_action = action
             return action
@@ -82,7 +84,7 @@ class QlearnAgent(Agent):
         valid_actions = game.get_valid_columns()
        
         if not valid_actions:
-            print("heas no valid action")
+            log("heas no valid action")
             return
         
 

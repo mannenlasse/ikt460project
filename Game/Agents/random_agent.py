@@ -1,6 +1,6 @@
 import random
 from .base_agent import Agent
-
+from print import log
 
 class RandomAgent(Agent):
 
@@ -13,10 +13,14 @@ class RandomAgent(Agent):
         available_columns = [col for col in range(game.board_width) if game.board[0, col] == 0]
 
         if not available_columns:
-            print("random_agent.py: no cells available")
+            log("random_agent.py: no cells available")
+            #print("random_agent.py: no cells available")
+
             return None
         
         random_available_column = random.choice(available_columns)
-        print(f"RandomAgent: chose column {random_available_column} for player {player_id}")
+        #print(f"RandomAgent: chose column {random_available_column} for player {player_id}")
+        log(f"RandomAgent: chose column {random_available_column} for player {player_id}")
+
         return random_available_column
 

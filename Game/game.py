@@ -1,6 +1,6 @@
 import numpy as np
 import random
-
+from print import log
 class Game: 
 
 
@@ -10,6 +10,8 @@ class Game:
         self.board_height = height
         self.board_width = width
         self.number_of_players = num_players
+
+
 
         #the board is a numpy array consisting of int and its size is defined by variables height and width
         #empty board consists of only 0 
@@ -25,15 +27,23 @@ class Game:
 
 
 
+    def log(self, message):
+        if self.debug:
+            print(message)
+
+
     def make_move(self, index):
         #since four in a row is with gravity. We use reverse to go through the board upside down so that it searches downwards and acts like gravity exsists
 
         for row in (reversed(range(self.board_height))):
             if self.board[row, index] == 0:
                 self.board[row, index] = self.current_player
-                print(f"game.py: make_move: found available moves: row: {row} and index: {index} for player: {self.current_player}")
+                #print(f"game.py: make_move: found available moves: row: {row} and index: {index} for player: {self.current_player}")
+                log(f"game.py: make_move: found available moves: row: {row} and index: {index} for player: {self.current_player}")
                 return row, index  
-        print("game.py: make_move: no available moves")
+        #print("game.py: make_move: no available moves")
+        log("game.py: make_move: no available moves")
+
         return False
 
 
@@ -62,7 +72,8 @@ class Game:
             #if the current count is as same or more than whats needed to win the game, the current players becomes the winner. 
             if count >= self.winning_length:
                 self.winner = self.current_player
-                print(f"game.py: winning_moves: Player {self.current_player} wins with {count} in a row!")
+                #print(f"game.py: winning_moves: Player {self.current_player} wins with {count} in a row!")
+                log(f"game.py: winning_moves: Player {self.current_player} wins with {count} in a row!")
                 return True
 
         return False
