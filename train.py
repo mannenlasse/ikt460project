@@ -32,7 +32,7 @@ os.makedirs(PLOT_DIR, exist_ok=True)
 #noraml height: 6 
 #normal width: 7
 #normal winning length: 4
-BOARD_HEIGHT = 18
+BOARD_HEIGHT = 8
 BOARD_WIDTH = 9
 WIN_LENGTH = 4
 
@@ -401,148 +401,19 @@ for episode in range(NUM_EPISODES):
 
 print("\n--- Training Complete ---")
 
-# After the training loop is complete, generate the plots
-# --- Plotting Results ---
-plt.figure(figsize=(15, 10)) # Adjusted figure size for 4 plots
-
-# --- Data Preparation for Plots ---
-window_size = 100 # Moving average window
-episodes_axis = np.arange(1, NUM_EPISODES + 1)
-
-def moving_average(data, window):
-    if len(data) == 0:
-        return np.array([])
-    actual_window = min(len(data), window)
-    if actual_window == 0: 
-        return np.array([])
-    return np.convolve(data, np.ones(actual_window)/actual_window, mode='valid')
-
-# Ensure we have data to plot
-if len(win_history) > 0:
-    ma_win_rate = moving_average(win_history, window_size)
-    ma_reward = moving_average(reward_history, window_size)
-
-    # Calculate the correct episodes for moving average
-    ma_episodes = episodes_axis[window_size-1:] if len(ma_win_rate) > 0 else np.array([])
-
-    # --- Plot 1: Win Rate (Top-Left) ---
-    plt.subplot(2, 2, 1)
-    if len(ma_episodes) > 0:
-        plt.plot(ma_episodes, ma_win_rate, label=f'Win Rate (MA {window_size})', color='green')
-        plt.plot(episodes_axis, win_history, alpha=0.3, color='lightgreen')
-    else:
-        plt.plot(episodes_axis, win_history, label='Win Rate', color='green')
-    plt.title('Win Rate')
-    plt.xlabel('Episodes')
-    plt.ylabel('Rate')
-    plt.ylim(-0.1, 1.1)  # Set y-axis limits for win rate
-    plt.legend()
-    plt.grid(True)
-
-    # --- Plot 2: Average Reward (Top-Right) ---
-    plt.subplot(2, 2, 2)
-    if len(ma_episodes) > 0:
-        plt.plot(ma_episodes, ma_reward, label=f'Avg Reward (MA {window_size})', color='purple')
-        plt.plot(episodes_axis, reward_history, alpha=0.3, color='plum')
-    else:
-        plt.plot(episodes_axis, reward_history, label='Avg Reward', color='purple')
-    plt.title('Average Reward')
-    plt.xlabel('Episodes')
-    plt.ylabel('Average Reward')
-    plt.legend()
-    plt.grid(True)
-
-    # --- Plot 3: Epsilon Decay (Bottom-Left) ---
-    plt.subplot(2, 2, 3)
-    if epsilon_history and len(episodes_axis) > 0:
-        plt.plot(episodes_axis, epsilon_history, label='Epsilon', color='red', linestyle=':')
-        plt.ylabel('Epsilon')
-    else:
-        plt.text(0.5, 0.5, 'No Epsilon data', ha='center', va='center')
-    plt.title('Epsilon Decay')
-    plt.xlabel('Episodes')
-    plt.ylim(-0.1, 1.1)  # Set y-axis limits for epsilon
-    plt.legend()
-    plt.grid(True)
-
-    # --- Plot 4: Learning Progress (Bottom-Right) ---
-    plt.subplot(2, 2, 4)
-    if len(win_history) > window_size:
-        # Calculate win rate improvement over time
-        window = 100
-        improvement = []
-        for i in range(window, len(win_history), window):
-            prev_win_rate = np.mean(win_history[i-window:i])
-            curr_win_rate = np.mean(win_history[i:min(i+window, len(win_history))])
-            improvement.append(curr_win_rate - prev_win_rate)
-        
-        # Plot improvement
-        x = np.arange(window, len(win_history), window)[:len(improvement)]
-        plt.bar(x, improvement, width=window*0.8, color='purple')
-        plt.axhline(y=0, color='gray', linestyle='-', alpha=0.5)
-        
-        # Find the max absolute value for symmetric y-axis limits
-        max_abs_change = max(abs(min(improvement)), abs(max(improvement))) if improvement else 0.2
-        # Add 20% padding and round to nearest 0.05
-        y_limit = min(0.3, round(max_abs_change * 1.2 * 20) / 20)
-        plt.ylim(-y_limit, y_limit)  # Set symmetric limits around zero
-        
-        # Updated title and y-axis label
-        plt.title('Learning Progress')
-        plt.xlabel('Episodes')
-        plt.ylabel('Win Rate Change')
-        plt.grid(True, axis='y')
-    else:
-        plt.text(0.5, 0.5, 'Not enough data for learning progress', ha='center', va='center')
-        plt.title('Learning Progress')
-        plt.xlabel('Episodes')
-        plt.ylabel('Win Rate Change')
-    
-
-else:
-    # If no data, display a message
-    plt.text(0.5, 0.5, 'No training data available', ha='center', va='center', transform=plt.gcf().transFigure)
-
-# Create a description of opponents for the plot title
-from collections import Counter
-opponent_types = [kind for kind, _ in opponent_definitions]
-opponent_counts = Counter(opponent_types)
-
-# For the plot title
-opponent_desc_list = []
-for kind, count in opponent_counts.items():
-    if kind == "random":
-        opponent_desc_list.append(f"{count}×Random")
-    elif kind == "dqn":
-        opponent_desc_list.append(f"{count}×DQN")
-    elif kind == "ppo":
-        opponent_desc_list.append(f"{count}×PPO")
-
-# Join opponent descriptions
-opponents_title = ", ".join(opponent_desc_list)
-
-# Add board dimensions to title
-board_info = f"{BOARD_HEIGHT}x{BOARD_WIDTH}"
-
-main_plot_title = f'Training Performance: {MODEL_TYPE.upper()} ({REWARD_TYPE}) vs {opponents_title} ({board_info}, {NUM_EPISODES} Episodes)'
-plt.suptitle(main_plot_title, fontsize=16)
-
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-
-# For the filename
-opponent_filename_parts = []
-for kind, count in opponent_counts.items():
-    opponent_filename_parts.append(f"{count}x{kind}")
-
-opponents_filename = "_".join(opponent_filename_parts)
-board_info = f"{BOARD_HEIGHT}x{BOARD_WIDTH}"
-win_info = f"win{WIN_LENGTH}"
-plot_filename = f'plot_{MODEL_TYPE}_{REWARD_TYPE}_vs_{opponents_filename}_{board_info}_{win_info}_ep{NUM_EPISODES}.png'
-
-# Make sure the plot directory exists
-os.makedirs(PLOT_DIR, exist_ok=True)
-
-plot_save_path = os.path.join(PLOT_DIR, plot_filename)
-plot_save_path = get_next_version(plot_save_path)
-plt.savefig(plot_save_path)
-print(f"Plot saved to: {plot_save_path}")
+from plot import generate_training_plots
+generate_training_plots(
+    win_history,
+    loss_history,
+    draw_history,
+    reward_history,
+    epsilon_history,
+    opponent_definitions,
+    MODEL_TYPE,
+    REWARD_TYPE,
+    BOARD_HEIGHT,
+    BOARD_WIDTH,
+    WIN_LENGTH,
+    NUM_EPISODES,
+    PLOT_DIR
+)
