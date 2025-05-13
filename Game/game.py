@@ -24,6 +24,7 @@ class Game:
         self.current_player = 1  
 
         self.winner = None
+        self.valid_columns = set(range(self.board_width))
 
 
 
@@ -33,18 +34,15 @@ class Game:
 
 
     def make_move(self, index):
-        #since four in a row is with gravity. We use reverse to go through the board upside down so that it searches downwards and acts like gravity exsists
-
-        for row in (reversed(range(self.board_height))):
+        for row in reversed(range(self.board_height)):
             if self.board[row, index] == 0:
                 self.board[row, index] = self.current_player
-                #print(f"game.py: make_move: found available moves: row: {row} and index: {index} for player: {self.current_player}")
                 log(f"game.py: make_move: found available moves: row: {row} and index: {index} for player: {self.current_player}")
-                return row, index  
-        #print("game.py: make_move: no available moves")
+                if row == 0:
+                    self.valid_columns.discard(index)
+                return row, index
         log("game.py: make_move: no available moves")
-
-        return False
+        return None, None  # safer return type for unpacking
 
 
     def winning_moves(self, row, col):
@@ -84,4 +82,4 @@ class Game:
         #print(np.flip(self.board))
 
     def get_valid_columns(self):
-        return [col for col in range(self.board_width) if self.board[0, col] == 0]
+        return list(self.valid_columns)
