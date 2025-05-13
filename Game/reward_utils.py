@@ -148,46 +148,39 @@ def _check_opponent_immediate_win_threat(game, opponent_id):
 # --- Main Reward Calculation Function ---
 
 def calculate_reward(game, player_id, row, col, done, reward_type):
-    """
-    Calculates the reward based on the game state and reward type.
-    Moved from DoubleDQNAgent and made standalone.
-    """
-    # --- Terminal Rewards (Common to both types) ---
     if done:
         if game.winner == player_id:
-            return 10.0  # Win
-        elif game.winner is not None: # Opponent won
-            return -10.0 # Loss
-        else: # Draw
+            return 10.0
+        elif game.winner is not None:
+            return -10.0
+        else:
             return 0.0
 
-    # --- Intermediate Rewards (Only for 'shaped' type) ---
     if reward_type == 'shaped':
         intermediate_reward = 0.0
-        opponent_id = 3 - player_id # Assuming player IDs 1 and 2
+        # Generalize for any number of players
+        opponent_ids = [pid for pid in range(1, game.number_of_players + 1) if pid != player_id]
 
-        # Check if row/col are valid (might be -1 if game ended before move)
-        if row == -1 or col == -1:
-             return 0.0 # No intermediate reward if move wasn't made
+        # 1. Reward for creating (win_length-1) in a row
+        if row != -1 and col != -1:
+            if _check_line_length(game, row, col, player_id, game.winning_length - 1, None):
+                intermediate_reward += 0.5
 
-        # 1. Reward for creating 3-in-a-row (potential win setup)
-        if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id):
-            intermediate_reward += 0.5
+            # 2. Reward for blocking any opponent's (win_length-1)
+            for opp_id in opponent_ids:
+                if _check_line_length(game, row, col, player_id, game.winning_length - 1, opp_id, check_for_player=opp_id):
+                    intermediate_reward += 0.4
 
-        # 2. Reward for blocking opponent's 3-in-a-row
-        if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id, check_for_player=opponent_id):
-             intermediate_reward += 0.4
-
-        # 3. Reward for playing in the center column
+        # 3. Reward for playing in the center column (generalized)
         center_col = game.board_width // 2
         if col == center_col:
             intermediate_reward += 0.1
 
-        # 4. Penalty for allowing opponent an immediate win next turn
-        if _check_opponent_immediate_win_threat(game, opponent_id):
-            intermediate_reward -= 1.0
+        # 4. Penalty for allowing any opponent an immediate win next turn
+        for opp_id in opponent_ids:
+            if _check_opponent_immediate_win_threat(game, opp_id):
+                intermediate_reward -= 1.0
 
         return intermediate_reward
     else:
-        # For 'sparse' rewards, return 0 for non-terminal states
         return 0.0
