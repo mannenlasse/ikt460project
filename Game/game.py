@@ -13,7 +13,7 @@ class Game:
 
         #the board is a numpy array consisting of int and its size is defined by variables height and width
         #empty board consists of only 0 
-        self.board = np.zeros((self.board_height, self.board_width), dtype=int)
+        self.board = np.zeros((self.board_height, self.board_width), dtype=np.uint8)
 
         #variable defining how many in a row you need to win 
         self.winning_length = win_length
