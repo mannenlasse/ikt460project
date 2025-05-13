@@ -1,4 +1,4 @@
-enabled = True
+enabled = False
 
 def log(message):
     if enabled:
