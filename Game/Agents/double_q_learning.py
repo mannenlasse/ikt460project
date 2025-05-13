@@ -26,9 +26,10 @@ class QlearnAgent(Agent):
         self.q1 = defaultdict(float)
         self.q2 = defaultdict(float)
 
-
+    
     def get_state(self, game):
-        return hash(game.board.tobytes())
+        return (game.board)
+
 
     def max_action(self, q, state, game):
         valid_actions = game.get_valid_columns()
