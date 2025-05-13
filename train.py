@@ -32,9 +32,9 @@ os.makedirs(PLOT_DIR, exist_ok=True)
 #noraml height: 6 
 #normal width: 7
 #normal winning length: 4
-BOARD_HEIGHT = 21000
-BOARD_WIDTH = 20000
-WIN_LENGTH = 300
+BOARD_HEIGHT = 18
+BOARD_WIDTH = 9
+WIN_LENGTH = 4
 
 # --- Argument Parsing ---
 parser = argparse.ArgumentParser(description='Train an Agent for Connect Four.')
@@ -160,7 +160,7 @@ def build_player_map(agent, opponent_defs, board_height, board_width, board_colu
 
 
 #HERE YOU CHOOSE WHAT KIND OF PLAYERS YOU WANT, SO RIGHT NOW ITS 67 RANDOM PLAYERS
-opponent_definitions =  [("random", None)] * 100 # Fill to 70 players total (69 + agent = 70)
+opponent_definitions =  [("random", None)] * 4 # Fill to 70 players total (69 + agent = 70)
 
 NUM_PLAYERS = len(opponent_definitions) + 1
 

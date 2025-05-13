@@ -64,7 +64,9 @@ class QlearnAgent(Agent):
         #explotation
         else: 
             # Sum Q-values only for valid actions
-            q_sum = {a: self.q1.get((state, a), -0.1) + self.q2.get((state, a), -0.1) for a in valid_actions}
+
+            state_key = tuple(map(tuple, state))  # make it hashable
+            q_sum = {a: self.q1.get((state_key, a), -0.1) + self.q2.get((state_key, a), -0.1) for a in valid_actions}
 
             if not q_sum:  # If no valid Q-values
                 action = random.choice(valid_actions)
@@ -89,6 +91,9 @@ class QlearnAgent(Agent):
         
 
         rando = random.random()
+        next_key = tuple(map(tuple, next_state))
+        last_key = tuple(map(tuple, self.last_state))
+
 
         if rando < 0.5: 
             ############################################################################
@@ -99,15 +104,18 @@ class QlearnAgent(Agent):
             a_ = self.max_action(self.q1, next_state, game)
 
             #Q2(s', argmax_a Q2(s', a))
-            future_q = self.q2.get((next_state, a_), 0.0)
+            #future_q = self.q2.get((next_state, a_), 0.0)
 
+            future_q = self.q2.get((next_key, a_), 0.0)
             #r + γ * Q2(s', argmax_a Q1(s', a))
             rewards_disc_future_q = reward + (0 if done else self.gamma * future_q) 
 
             #Q1(s, a)
-            old_q1 = self.q1.get((self.last_state, self.last_action), -0.0)
+            #old_q1 = self.q1.get((self.last_state, self.last_action), -0.0)
+            old_q1 = self.q1.get((last_key, self.last_action), -0.0)
+
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
-            self.q1[(self.last_state, self.last_action)] = old_q1 + self.alpha * (rewards_disc_future_q - old_q1)
+            self.q1[(last_key, self.last_action)] = old_q1 + self.alpha * (rewards_disc_future_q - old_q1)
 
         else:
             ############################################################################
@@ -118,14 +126,17 @@ class QlearnAgent(Agent):
             a_ = self.max_action(self.q2, next_state, game)
 
             #Q2(s', argmax_a Q1(s', a))
-            future_q = self.q1.get((next_state, a_), 0.0)
+            #future_q = self.q1.get((next_state, a_), 0.0)
+            future_q = self.q1.get((next_key, a_), 0.0)
             #r + γ * Q2(s', argmax_a Q1(s', a))
             rewards_disc_future_q = reward + (0 if done else self.gamma * future_q)  
+            
             #Q1(s, a)
-            old_q2 = self.q2.get((self.last_state, self.last_action), 0.0)
+            #old_q2 = self.q2.get((self.last_state, self.last_action), 0.0)
+            old_q2 = self.q2.get((last_key, self.last_action), -0.0)
 
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
-            self.q2[(self.last_state, self.last_action)] = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
+            self.q2[(last_key, self.last_action)]  = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
 
 
 
