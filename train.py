@@ -18,7 +18,6 @@ from Game.Agents.double_dqn.double_dqn_agent import DoubleDQNAgent # Import DQN 
 from Game.reward_utils import calculate_reward # Import the centralized reward function
 from Game.Agents.double_q_learning import QlearnAgent
 from Game.Agents.ppo_agent import PPOAgent
-import copy
 
 # --- Central Model Directory ---
 CENTRAL_MODEL_DIR = os.path.join(project_root, 'models')
@@ -80,10 +79,7 @@ if MODEL_TYPE == 'dqn':
         action_size=BOARD_WIDTH,
         memory_size=MEMORY_SIZE,
         batch_size=BATCH_SIZE,
-        learning_rate=LEARNING_RATE,
-        epsilon=1.0,               # Start with full exploration
-        epsilon_min=0.1,           # Higher minimum epsilon for more exploration
-        epsilon_decay=0.9999       # Much slower decay for better learning
+        learning_rate=LEARNING_RATE
         # reward_type is handled externally now
     )
 
@@ -94,7 +90,7 @@ elif MODEL_TYPE == 'qlearn':
         learn_rate=LEARNING_RATE,
         disc_factor=0.99,  # can add --gamma to CLI if needed
         explor_rate=1.0,
-        explor_decay=0.9995
+        explor_decay=0.995
     )
 
 
@@ -125,46 +121,66 @@ else:
 
 #hva skjer: this functions maps a player with an id. The agent who is learning is always player 1 while the others players are oppoents and you can chose what kind 
 def build_player_map(agent, opponent_defs, board_height, board_width, board_column):
-    player_map = {1: agent}  # Learning agent always player 1
+
+
+    player_map = {1: agent}
+    playerid = 2
 
     for i, (kind, model_path) in enumerate(opponent_defs):
-        playerid = i + 2  # Opponent player IDs start at 2
-
         if kind == "random":
-            player_map[playerid] = RandomAgent(Current_Player=playerid)
+            player_map[playerid] = RandomAgent(playerid)
 
         elif kind == "dqn":
             dqn = DoubleDQNAgent(
-                player_id=playerid,
                 board_height=board_height,
                 board_width=board_width,
                 action_size=board_column,
-                learning_rate=0.0,
+                player_id=playerid,
+                learning_rate=0.001,
                 gamma=0.99,
-                epsilon=1.0,
-                epsilon_min=0.05,
-                epsilon_decay=0.9995
+                epsilon=0.0,  # No exploration
+                epsilon_min=0.01,
+                epsilon_decay=0.995,
+                memory_size=10000,
+                batch_size=64,
+                update_target_freq=10
             )
             if model_path:
                 dqn.load_model(model_path)
-                dqn.model.eval()
-                if hasattr(dqn, "target_model"):
-                    dqn.target_model.eval()
             player_map[playerid] = dqn
+
+        elif kind == "qlearn":
+            qlearn = QlearnAgent(
+                player_id=playerid,
+                learn_rate=0.0,        # Disable learning for opponents
+                disc_factor=0.99,
+                explor_rate=0.0,       # No exploration
+                explor_decay=1.0
+            )
+            if model_path:
+                qlearn.load_model(model_path)
+            player_map[playerid] = qlearn
+
+        elif kind == "ppo":
+            ppo = PPOAgent(
+                player_id=playerid,
+                input_shape=(board_height, board_width),
+                num_actions=board_column,
+            )
+            if model_path:
+                ppo.load_model(model_path)
+            player_map[playerid] = ppo
 
         else:
             raise ValueError(f"Unknown agent type: {kind}")
 
-    for playerid, agent_obj in sorted(player_map.items()):
-        print(f"   Player {playerid}: {type(agent_obj).__name__}", flush=True)
+        playerid += 1
 
     return player_map
 
 
-
-
 #HERE YOU CHOOSE WHAT KIND OF PLAYERS YOU WANT, SO RIGHT NOW ITS 67 RANDOM PLAYERS
-opponent_definitions =  [("dqn", "models\dqn_shaped_vs_1xrandom_6x7_win4_ep20000.pt")]  # Fill to 70 players total (69 + agent = 70)
+opponent_definitions =  [("dqn", None)] * 1 # Fill to 70 players total (69 + agent = 70)
 
 NUM_PLAYERS = len(opponent_definitions) + 1
 
@@ -207,17 +223,7 @@ print(f"Model: {MODEL_TYPE}, Opponent: {OPPONENT_TYPE}, Reward: {REWARD_TYPE}")
 print(f"Episodes: {NUM_EPISODES}, LR: {LEARNING_RATE}")
 print(f"-------------------------\n")
 
-self_play_opponent = copy.deepcopy(agent)
-self_play_opponent.epsilon = 0.0  # Ingen utforskning for motstander
-
 for episode in range(NUM_EPISODES):
-    # Oppdater motstander hver N episoder hvis ønskelig
-    if episode % 1000 == 0 and episode > 0:
-        self_play_opponent = copy.deepcopy(agent)
-        self_play_opponent.epsilon = 0.0
-
-    player_map = {1: agent, 2: self_play_opponent}
-
     #initiate game 
     game = Game(BOARD_HEIGHT, BOARD_WIDTH, NUM_PLAYERS, WIN_LENGTH)
     done = False
