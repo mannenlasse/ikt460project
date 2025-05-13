@@ -26,10 +26,9 @@ class QlearnAgent(Agent):
 
 
     def get_state(self, game):
-        statee = tuple(game.board.flatten())
+        statee = hash(game.board.tobytes())
         return statee
     
-
 
     def max_action(self, q, state, game):
         valid_actions = game.get_valid_columns()
