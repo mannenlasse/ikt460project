@@ -1,6 +1,7 @@
 import random
 from .base_agent import Agent
 from print import log
+import numpy as np
 
 class RandomAgent(Agent):
 
@@ -10,8 +11,10 @@ class RandomAgent(Agent):
 
 
     def select_action(self, game, player_id=None):
-        available_columns = [col for col in range(game.board_width) if game.board[0, col] == 0]
 
+        
+        available_columns = game.get_valid_columns()
+        #available_columns = np.flatnonzero(game.board[0] == 0).tolist()
         if not available_columns:
             log("random_agent.py: no cells available")
             #print("random_agent.py: no cells available")

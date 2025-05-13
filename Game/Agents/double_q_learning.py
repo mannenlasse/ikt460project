@@ -28,8 +28,7 @@ class QlearnAgent(Agent):
 
     
     def get_state(self, game):
-        return (game.board)
-
+        return game.board
 
     def max_action(self, q, state, game):
         valid_actions = game.get_valid_columns()
