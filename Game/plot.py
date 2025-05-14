@@ -11,6 +11,15 @@ def smooth(values, window=50):
 def rolling_win_rate(wins, window=100):
     return [np.mean(wins[max(0, i - window):i+1]) for i in range(len(wins))]
 
+
+def get_unique_plot_filename(base, ext=".png"):
+    counter = 1
+    path = f"{base}{ext}"
+    while os.path.exists(path):
+        path = f"{base}_{counter}{ext}"
+        counter += 1
+    return path
+
 def plot_agent_fig(agent_id, agent_name, data):
     def win_rate_over_episodes(wins, window=100):
         win_diffs = np.diff([0] + wins)
@@ -75,8 +84,9 @@ def plot_agent_fig(agent_id, agent_name, data):
 
     axs[3].set_xlabel("Training Episodes")
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    filename = f"agent{agent_id}_{agent_name.lower()}_training.png"
-    plt.savefig(filename)
+    base_name = f"agent{agent_id}_{agent_name.lower()}_training"
+    filename = get_unique_plot_filename(base_name)
+    plt.savefig(filename)   
     plt.close()
     print(f"Saved plot to: {filename}")
 

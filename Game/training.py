@@ -42,6 +42,16 @@ def init_agents(agent_names):
         agents.append(agent)
     return agents
 
+
+def get_unique_path(base_path, ext=".pkl"):
+    counter = 1
+    full_path = f"{base_path}{ext}"
+    while os.path.exists(full_path):
+        full_path = f"{base_path}_{counter}{ext}"
+        counter += 1
+    return full_path
+
+
 def train(agent_names):
     agents = init_agents(agent_names)
     num_agents = len(agents)
@@ -139,10 +149,16 @@ def train(agent_names):
         print(f"Player {pid} ({agent_names[pid - 1].upper()}): Total Wins = {win_stats[pid]}, Avg Moves/Game = {np.mean(agent_moves[pid]):.2f}")
     print(f"Draws: {win_stats['draw']}")
 
+
     os.makedirs("models", exist_ok=True)
     for pid, agent in enumerate(agents, start=1):
         if hasattr(agent, 'save_model'):
-            agent.save_model(f"models/{agent_names[pid - 1]}_agent_{pid}.pkl")
+            base = f"models/{agent_names[pid - 1]}_agent_{pid}"
+            unique_path = get_unique_path(base)
+            agent.save_model(unique_path)
+            print(f"Saved model to: {unique_path}")
+
+
 
     log_data = {
         **{f"agent{i + 1}_wins_raw": agent_wins[i + 1] for i in range(num_agents)},
