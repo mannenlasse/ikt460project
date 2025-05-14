@@ -73,8 +73,11 @@ class QlearnAgent(Agent):
             if not q_sum:  # If no valid Q-values
                 action = random.choice(valid_actions)
             else:
-                action = max(q_sum.items(), key=lambda x: x[1])[0]
-                
+                max_q = max(q_sum.values())
+                best_actions = [a for a, val in q_sum.items() if val == max_q]
+                random.shuffle(best_actions)
+                action = best_actions[0]
+                                
             log("qlearning.py: select_action [exploit]: Best action selected")
             self.last_state = state
             self.last_action = action
@@ -114,7 +117,7 @@ class QlearnAgent(Agent):
 
             #Q1(s, a)
             #old_q1 = self.q1.get((self.last_state, self.last_action), -0.0)
-            old_q1 = self.q1.get((last_key, self.last_action), -0.0)
+            old_q1 = self.q1.get((last_key, self.last_action), 0.0)
 
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
             self.q1[(last_key, self.last_action)] = old_q1 + self.alpha * (rewards_disc_future_q - old_q1)
@@ -135,7 +138,7 @@ class QlearnAgent(Agent):
             
             #Q1(s, a)
             #old_q2 = self.q2.get((self.last_state, self.last_action), 0.0)
-            old_q2 = self.q2.get((last_key, self.last_action), -0.0)
+            old_q2 = self.q2.get((last_key, self.last_action), 0.0)
 
             #Q1(s, a) = Q1(s, a) + α(r + γ * Q2(s', argmax_a Q1(s', a)) - Q1(s, a))   
             self.q2[(last_key, self.last_action)]  = old_q2 + self.alpha *(rewards_disc_future_q - old_q2)
@@ -149,6 +152,8 @@ class QlearnAgent(Agent):
         with open(file_path, "wb") as f:
             pickle.dump({"q1": dict(self.q1), "q2": dict(self.q2)}, f)
         print(f"QlearnAgent: Q-tables saved to {file_path}")
+
+
 
     def load_model(self, file_path):
         with open(file_path, "rb") as f:

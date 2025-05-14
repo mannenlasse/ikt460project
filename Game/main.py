@@ -1,67 +1,63 @@
-import random
 from game import Game
-from Agents.random_agent import RandomAgent
-from Agents.agenta import Random_Agent_2
-# Updated import path
-from Agents.double_dqn.double_dqn_agent import DoubleDQNAgent
-import os
+from Agents.double_q_learning import QlearnAgent
 
+# Game setup
+BOARD_HEIGHT = 6
+BOARD_WIDTH = 7
+NUM_PLAYERS = 2
+WINNING_LENGTH = 4
 
-board_height = 6
-board_width = 7
-number_of_players = 2
-winnding_length = 3
+game = Game(BOARD_HEIGHT, BOARD_WIDTH, NUM_PLAYERS, WINNING_LENGTH)
 
-# height --- width --- numvber of players --- winning length #
-game = Game(board_height, board_width, number_of_players, winnding_length)
+# Load Q-learning agent
+q_agent = QlearnAgent(
+    learn_rate=0.1,
+    disc_factor=0.95,
+    explor_rate=0.0,
+    explor_decay=1.0,
+    player_id=1
+)
+q_agent.load_model("models/qlearn_agent_2.pkl")
 
-# Initialiser DQN-agenten og last inn trent modell
-dqn_agent = DoubleDQNAgent(player_id=1, game=game,action_size=game.board_width)
-
-
-# Update path in load_model call
-dqn_agent.load_model("Agents/double_dqn/models/dqn_agent_final.pt")
-dqn_agent.epsilon = 0.0  # Ingen utforskning, kun utnyttelse
-
-
-
-agents = [dqn_agent, Random_Agent_2(1)]
+# Agent list: Q-learning vs Human
+agents = [q_agent, "human"]
 
 print("main.py: Game started!\n")
 
 done = False
-
 while not done:
-
-     
-    
     print(f"Current player: {game.current_player}")
 
-    current_agent = agents[game.current_player - 1]
-    move = current_agent.select_action(game)
-    
-
+    if agents[game.current_player - 1] == "human":
+        while True:
+            try:
+                move = int(input(f"Your move (0-{game.board_width - 1}): "))
+                if move in game.get_valid_columns():
+                    break
+                else:
+                    print("Invalid move. Column full or out of range.")
+            except ValueError:
+                print("Please enter a valid integer.")
+    else:
+        agent = agents[game.current_player - 1]
+        move = agent.select_action(game)
 
     if move is None:
         print("main.py: Board is full. It's a draw.")
         break
 
     result = game.make_move(move)
-
     if not result:
-        continue  # Try again if move failed
+        print("main.py: Invalid move attempted. Try again.")
+        continue
 
     row, col = result
-    
-    print(f"main.py: Player {game.current_player} played in column {move} and col: {col} and row: {row} and result: {result}")
+    print(f"Player {game.current_player} played in column {col}, row {row}")
     game.print_board()
-    print("")
-
+    print()
 
     if game.winning_moves(row, col):
-        print(f"main.py: Player {game.current_player} has won the game!\n")
-        done = True
-        
+        print(f"main.py: Player {game.current_player} wins!\n")
+        break
 
-    # Switch to next player
     game.current_player = (game.current_player % game.number_of_players) + 1
