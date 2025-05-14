@@ -122,6 +122,34 @@ def _check_line_length(game, row, col, player_id, length_needed, opponent_id, ch
 
     return False
 
+
+
+def _is_diagonal_threat(game, row, col, player_id, length_needed):
+    board = game.board
+    height = game.board_height
+    width = game.board_width
+    directions = [(1, 1), (1, -1)]  # Diagonals only
+
+    for dr, dc in directions:
+        count = 1
+        for i in range(1, length_needed):
+            r, c = row + i * dr, col + i * dc
+            if 0 <= r < height and 0 <= c < width and board[r, c] == player_id:
+                count += 1
+            else:
+                break
+        for i in range(1, length_needed):
+            r, c = row - i * dr, col - i * dc
+            if 0 <= r < height and 0 <= c < width and board[r, c] == player_id:
+                count += 1
+            else:
+                break
+        if count >= length_needed:
+            return True
+    return False
+
+
+
 def _check_opponent_immediate_win_threat(game, opponent_id):
     """
     Checks if the opponent has a winning move available on their next turn.
@@ -148,62 +176,64 @@ def _check_opponent_immediate_win_threat(game, opponent_id):
 # --- Main Reward Calculation Function ---
 
 def calculate_reward(game, player_id, row, col, done, reward_type):
-    """
-    Calculates the reward based on the game state and reward type.
-    Moved from DoubleDQNAgent and made standalone.
-    """
-    # --- Terminal Rewards (Common to both types) ---
     if done:
         if game.winner == player_id:
-            return 10.0  # Win
-        elif game.winner is not None: # Opponent won
-            return -10.0 # Loss
-        else: # Draw
-            return 0.0
+            # Win + bonus for winning early
+            return 10.0 + (game.board_height * game.board_width - np.count_nonzero(game.board)) * 0.05
+        elif game.winner is not None:
+            return -10.0  # Lost
+        else:
+            return 0.0  # Draw
 
-    # --- Intermediate Rewards (Only for 'shaped' type) ---
-    if reward_type == 'shaped':
-        intermediate_reward = 0.0
-        opponent_id = 3 - player_id # Assuming player IDs 1 and 2
+    if reward_type != 'shaped':
+        return 0.0  # Sparse reward mode
 
-        # Check if row/col are valid (might be -1 if game ended before move)
-        if row == -1 or col == -1:
-             return 0.0 # No intermediate reward if move wasn't made
+    # --- Intermediate Shaped Rewards ---
+    intermediate_reward = 0.0
+    opponent_id = 3 - player_id
 
-        # 1. Reward for creating 3-in-a-row (potential win setup)
-        if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id):
-            intermediate_reward += 0.5
+    if row == -1 or col == -1:
+        return 0.0  # No valid move
 
-        # 2. Reward for blocking opponent's 3-in-a-row
-        if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id, check_for_player=opponent_id):
-             intermediate_reward += 0.5
+    # 1. Reward for creating 3-in-a-row (any direction)
+    if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id):
+        intermediate_reward += 0.3
 
-        # 3. Reward for playing in the center column
-        center_col = game.board_width // 2
-        if col == center_col:
-            intermediate_reward += 0.1
+    # 2. Bonus for diagonal threats
+    if _is_diagonal_threat(game, row, col, player_id, game.winning_length - 1):
+        intermediate_reward += 1.0
 
-        # 4. Penalty for allowing opponent an immediate win next turn
-        if _check_opponent_immediate_win_threat(game, opponent_id):
-            intermediate_reward -= 1.0
+    # 3. Reward for blocking opponent’s 3-in-a-row
+    if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id, check_for_player=opponent_id):
+        intermediate_reward += 1.5
 
-        # 5. Reward for creating multiple winning threats
-        potential_wins = 0
-        for next_col in game.get_valid_columns():
-            for next_row in range(game.board_height - 1, -1, -1):
-                if game.board[next_row, next_col] == 0:
-                    if _check_line_length(game, next_row, next_col, player_id, game.winning_length - 1, opponent_id):
-                        potential_wins += 1
-                    break
-        if potential_wins > 1:
-            intermediate_reward += 1.0
+    # 4. Reward for center control
+    center_col = game.board_width // 2
+    if col == center_col:
+        intermediate_reward += 0.1
 
-        # 6. Penalty for isolated moves
+    # 5. Penalty for allowing immediate opponent win
+    if _check_opponent_immediate_win_threat(game, opponent_id):
+        intermediate_reward -= 1.0
+
+    # 6. Reward for creating multiple threats
+    potential_wins = 0
+    for next_col in game.get_valid_columns():
+        for next_row in range(game.board_height - 1, -1, -1):
+            if game.board[next_row, next_col] == 0:
+                if _check_line_length(game, next_row, next_col, player_id, game.winning_length - 1, opponent_id):
+                    potential_wins += 1
+                break
+    if potential_wins > 1:
+        intermediate_reward += 2.0
+
+    # 7. Penalty for stacking without strategic value
+    if row < game.board_height - 1 and game.board[row + 1, col] == player_id:
         if not _check_line_length(game, row, col, player_id, 2, opponent_id):
-            intermediate_reward -= 0.2
+            intermediate_reward -= 0.7
 
-        
-        return intermediate_reward
-    else:
-        # For 'sparse' rewards, return 0 for non-terminal states
-        return 0.0
+    # 8. Penalty for playing in edge columns
+    if col == 0 or col == game.board_width - 1:
+        intermediate_reward -= 0.3
+
+    return intermediate_reward

@@ -1,7 +1,7 @@
 from game import Game
 from Agents.double_q_learning import QlearnAgent
 from Agents.double_dqn_agent import DoubleDQNAgent
-
+from Agents.ppo_agent import PPOAgent
 # Game setup
 BOARD_HEIGHT = 6
 BOARD_WIDTH = 7
@@ -10,18 +10,6 @@ WINNING_LENGTH = 4
 
 game = Game(BOARD_HEIGHT, BOARD_WIDTH, NUM_PLAYERS, WINNING_LENGTH)
 
-# Load Q-learning agent
-q_agent = QlearnAgent(
-    learn_rate=0.0,
-    disc_factor=0.95,
-    explor_rate=0.0,
-    explor_decay=1.0,
-    player_id=1
-)
-q_agent.load_model("models/qlearn_agent_7.pkl")
-
-# Agent list: Q-learning vs Human
-#agents = [q_agent, "human"]
 
 
 
@@ -36,15 +24,34 @@ dqn_agent = DoubleDQNAgent(
     epsilon_min=0.0,          # Not decaying anyway
     epsilon_decay=1.0         # Won’t change epsilon
 )
+dqn_agent.load_model("models/dqn_agent_2.pkl")
 
 
+# Load PPO agent
+ppo_agent = PPOAgent(
+    player_id=1,
+    state_dim=BOARD_HEIGHT * BOARD_WIDTH,
+    action_dim=BOARD_WIDTH,
+    lr=0.0,  # Inference only
+    gamma=0.95
+)
+ppo_agent.load_model("models/ppo_agent_1.pkl")  # Adjust model name as needed
 
 
-# Agent list: Q-learning vs Human
-dqn_agent.load_model("models/dqn_agent_4.pkl")
+"""
+# Load Q-learning agent
+q_agent = QlearnAgent(
+    learn_rate=0.0,
+    disc_factor=0.95,
+    explor_rate=0.0,
+    explor_decay=1.0,
+    player_id=1
+)
+q_agent.load_model("models/qlearn_agent_2.pkl")
+"""
 
 
-agents = [q_agent, dqn_agent]
+agents = [ppo_agent, "human"]
 
 print("main.py: Game started!\n")
 
@@ -63,7 +70,7 @@ while not done:
             except ValueError:
                 print("Please enter a valid integer.")
 
-    elif agents[game.current_player - 1] == q_agent:
+    elif agents[game.current_player - 1] == ppo_agent:
         agent = agents[game.current_player - 1]
         move = agent.select_action(game)
 
@@ -87,7 +94,7 @@ while not done:
 
     if game.winning_moves(row, col):
         winner_agent = agents[game.current_player - 1]
-        agent_type = "Q-learning" if winner_agent == q_agent else "DQN"
+        agent_type = "PPO" if winner_agent == ppo_agent else "DQN"
         print(f"main.py: Player {game.current_player} ({agent_type} agent) wins!\n")
         break
 
