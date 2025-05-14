@@ -80,7 +80,6 @@ for episode in range(EPISODES):
             break
 
         game.current_player = (game.current_player % 2) + 1
-        game.print_board
 
 print(f"After {EPISODES} episodes:")
 print(f"Player 1 ({agents[0].__class__.__name__}) wins: {results[1]}")
