@@ -27,11 +27,11 @@ def init_agents(agent_names):
     for i, name in enumerate(agent_names):
         player_id = i + 1
         if name == "qlearn":
-            agent = QlearnAgent(learn_rate=0.05, disc_factor=0.95, explor_rate=1.0, explor_decay=0.997, player_id=player_id
+            agent = QlearnAgent(learn_rate=0.05, disc_factor=0.95, explor_rate=1.0, explor_decay=0.999, player_id=player_id
 )
         elif name == "dqn":
             agent = DoubleDQNAgent(board_height=BOARD_HEIGHT,board_width=BOARD_WIDTH,action_size=BOARD_WIDTH,learning_rate=0.0005,   gamma=0.99,  
-                                     epsilon=1.0,epsilon_min=0.05,epsilon_decay=0.995,  player_id=player_id)
+                                     epsilon=1.0,epsilon_min=0.05,epsilon_decay=0.999,  player_id=player_id)
         elif name == "ppo":
             agent = PPOAgent(lr=0.0003, gamma=0.99,player_id=player_id, state_dim=BOARD_HEIGHT * BOARD_WIDTH, action_dim=BOARD_WIDTH
 )
@@ -76,6 +76,8 @@ def train(agent_names):
             row, col = game.make_move(action)
             won = game.winning_moves(row, col)
             done = won or not game.get_valid_columns()
+            if done and not won:
+                game.winner = None  
 
             reward = calculate_reward(game, player_id, row, col, done, reward_type='shaped')
             next_state = current_agent.get_state(game)
