@@ -29,7 +29,7 @@ def init_agents(agent_names):
         if name == "qlearn":
             agent = QlearnAgent(learn_rate=0.1, disc_factor=0.95, explor_rate=1.0, explor_decay=0.999, player_id=player_id)
         elif name == "dqn":
-            agent = DoubleDQNAgent(board_height=BOARD_HEIGHT, board_width=BOARD_WIDTH, action_size=BOARD_WIDTH, player_id=player_id)
+            agent = DoubleDQNAgent(board_height=BOARD_HEIGHT, board_width=BOARD_WIDTH, action_size=BOARD_WIDTH, learning_rate=0.001, gamma=0.99, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.999,  player_id=player_id)
         elif name == "ppo":
             agent = PPOAgent(player_id=player_id, state_dim=BOARD_HEIGHT * BOARD_WIDTH, action_dim=BOARD_WIDTH)
         elif name == "random":
@@ -49,6 +49,9 @@ def train(agent_names):
     agent_moves = {i + 1: [] for i in range(num_agents)}
     agent_epsilons = {i + 1: [] for i in range(num_agents)}
     agent_rewards = {i + 1: [] for i in range(num_agents)}
+    agent_wins = {i + 1: [] for i in range(num_agents)}
+
+
 
     for episode in range(1, NUM_EPISODES + 1):
         game = Game(BOARD_HEIGHT, BOARD_WIDTH, num_agents, WIN_LENGTH)
@@ -85,7 +88,20 @@ def train(agent_names):
                 current_agent.store_outcome(reward, done)
 
             episode_moves[player_id] += 1
+
+
+
             if done:
+
+                if game.winner:
+                    agent_wins[game.winner].append(1)
+                    for pid in range(1, num_agents + 1):
+                        if pid != game.winner:
+                            agent_wins[pid].append(0)
+                else:
+                    for pid in range(1, num_agents + 1):
+                        agent_wins[pid].append(0)
+
                 win_stats[game.winner or 'draw'] += 1
                 break
 
@@ -124,7 +140,8 @@ def train(agent_names):
             agent.save_model(f"models/{agent_names[pid - 1]}_agent_{pid}.pkl")
 
     log_data = {
-        **{f"agent{i + 1}_wins": np.cumsum([1 if x < win_stats[i + 1] else 0 for x in range(NUM_EPISODES)]).tolist() for i in range(num_agents)},
+        **{f"agent{i + 1}_wins_raw": agent_wins[i + 1] for i in range(num_agents)},
+        **{f"agent{i + 1}_wins": np.cumsum(agent_wins[i + 1]).tolist() for i in range(num_agents)},
         **{f"agent{i + 1}_moves": agent_moves[i + 1] for i in range(num_agents)},
         **{f"agent{i + 1}_epsilons": agent_epsilons[i + 1] for i in range(num_agents)},
         **{f"agent{i + 1}_rewards": agent_rewards[i + 1] for i in range(num_agents)},
@@ -138,8 +155,20 @@ def train(agent_names):
 
     subprocess.run(["python", "plot.py", "--log_file", "training_log.json"])
 
+
+    print("\n======= Training Complete =======")
+    for pid in range(1, num_agents + 1):
+        total_wins = win_stats[pid]
+        win_rate = (total_wins / NUM_EPISODES) * 100
+        print(f"Player {pid} ({agent_names[pid - 1].upper()}): Total Wins = {total_wins}, Win Rate = {win_rate:.2f}%, Avg Moves/Game = {np.mean(agent_moves[pid]):.2f}")
+    print(f"Draws: {win_stats['draw']}")
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--agents", nargs='+', required=True, help="List of agent types (e.g. qlearn qlearn dqn dqn dqn)")
     args = parser.parse_args()
     train(args.agents)
+
+

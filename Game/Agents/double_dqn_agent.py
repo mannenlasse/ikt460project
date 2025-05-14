@@ -23,8 +23,8 @@ class DQNNetwork(nn.Module):
 class DoubleDQNAgent:
     # Remove reward_type from __init__ arguments and self.reward_type
     def __init__(self, board_height, board_width, action_size,
-                 learning_rate=0.001, gamma=0.99, epsilon=1.0,
-                 epsilon_min=0.01, epsilon_decay=0.999, memory_size=10000,
+                 learning_rate, gamma, epsilon,
+                 epsilon_min, epsilon_decay, memory_size=10000,
                  batch_size=64, update_target_freq=10,  player_id = None):
         self.player_id = player_id
         self.board_height = board_height
