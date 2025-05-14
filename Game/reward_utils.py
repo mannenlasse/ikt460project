@@ -176,7 +176,7 @@ def calculate_reward(game, player_id, row, col, done, reward_type):
 
         # 2. Reward for blocking opponent's 3-in-a-row
         if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id, check_for_player=opponent_id):
-             intermediate_reward += 0.8
+             intermediate_reward += 0.5
 
         # 3. Reward for playing in the center column
         center_col = game.board_width // 2
@@ -187,10 +187,23 @@ def calculate_reward(game, player_id, row, col, done, reward_type):
         if _check_opponent_immediate_win_threat(game, opponent_id):
             intermediate_reward -= 1.0
 
-        if col == 0:
-            intermediate_reward -= 0.05
+        # 5. Reward for creating multiple winning threats
+        potential_wins = 0
+        for next_col in game.get_valid_columns():
+            for next_row in range(game.board_height - 1, -1, -1):
+                if game.board[next_row, next_col] == 0:
+                    if _check_line_length(game, next_row, next_col, player_id, game.winning_length - 1, opponent_id):
+                        potential_wins += 1
+                    break
+        if potential_wins > 1:
+            intermediate_reward += 1.0
 
-        return intermediate_reward * 5
+        # 6. Penalty for isolated moves
+        if not _check_line_length(game, row, col, player_id, 2, opponent_id):
+            intermediate_reward -= 0.2
+
+        
+        return intermediate_reward
     else:
         # For 'sparse' rewards, return 0 for non-terminal states
         return 0.0
