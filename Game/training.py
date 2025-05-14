@@ -31,7 +31,7 @@ def init_agents(agent_names):
         elif name == "dqn":
             agent = DoubleDQNAgent(board_height=BOARD_HEIGHT, board_width=BOARD_WIDTH, action_size=BOARD_WIDTH, learning_rate=0.001, gamma=0.99, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.999,  player_id=player_id)
         elif name == "ppo":
-            agent = PPOAgent(player_id=player_id, state_dim=BOARD_HEIGHT * BOARD_WIDTH, action_dim=BOARD_WIDTH)
+            agent = PPOAgent(lr=1e-2, gamma=0.99, player_id=player_id, state_dim=BOARD_HEIGHT * BOARD_WIDTH, action_dim=BOARD_WIDTH)
         elif name == "random":
             agent = RandomAgent(Current_Player=player_id)
         else:
@@ -85,7 +85,7 @@ def train(agent_names):
             if hasattr(current_agent, 'observe') and getattr(current_agent, 'last_state', None) is not None:
                 current_agent.observe(reward, game, done)
             elif hasattr(current_agent, 'store_outcome'):
-                current_agent.store_outcome(reward, done)
+                current_agent.store_outcome(game, row, col, done, reward)
 
             episode_moves[player_id] += 1
 

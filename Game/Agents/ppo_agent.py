@@ -2,7 +2,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
+from reward_utils import calculate_reward
 import numpy as np
+import os
 
 class PolicyNetwork(nn.Module):
     def __init__(self, state_dim, action_dim):
@@ -19,7 +21,7 @@ class PolicyNetwork(nn.Module):
 
 
 class PPOAgent:
-    def __init__(self, player_id, state_dim, action_dim, lr=1e-3, gamma=0.99, clip_epsilon=0.2):
+    def __init__(self, player_id, state_dim, action_dim, lr, gamma, clip_epsilon=0.2):
         self.player_id = player_id
         self.gamma = gamma
         self.clip_epsilon = clip_epsilon
@@ -35,7 +37,7 @@ class PPOAgent:
 
     def select_action(self, game):
         # Flatten the board
-        state = torch.FloatTensor(game.board.flatten()).unsqueeze(0)  # (1, state_dim)
+        state = torch.FloatTensor(game.board.flatten()).unsqueeze(0)
         logits = self.policy(state)
         
         valid_moves = game.get_valid_columns()
@@ -52,24 +54,21 @@ class PPOAgent:
         dist = Categorical(probs)
         action = dist.sample()
 
-        #self.memory.append((state, action, dist.log_prob(action)))HEI
+        # Save experience without reward and done (updated later)
         self.memory.append((state, action, dist.log_prob(action), None, None))
 
         return action.item()
 
-    def store_outcome(self, reward, done):
-        #HEI
-        # self.memory[-1] += (reward, done)
-
-
+    def store_outcome(self, game, row, col, done, reward):
         # Get the last stored experience
         last_state, last_action, last_log_prob, _, _ = self.memory[-1]
-        # Update with the reward and done values
+
+
+        # Update the experience with the calculated reward
         self.memory[-1] = (last_state, last_action, last_log_prob, reward, done)
 
     def train(self):
-
-        # Check if we have any valid experiencesHEI
+        # Check if we have any valid experiences
         if not self.memory or any(None in experience for experience in self.memory):
             return  # Don't train if we have incomplete experiences
 
@@ -123,3 +122,15 @@ class PPOAgent:
         board_state[board_state == self.player_id] = 1.0
         board_state[board_state == opponent_id] = -1.0
         return board_state
+
+
+
+    def save_model(self, file_path):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        torch.save(self.policy.state_dict(), file_path)
+        print(f"PPOAgent: Model saved to {file_path}")
+
+    def load_model(self, file_path):
+        self.policy.load_state_dict(torch.load(file_path))
+        self.policy.eval()
+        print(f"PPOAgent: Model loaded from {file_path}")
