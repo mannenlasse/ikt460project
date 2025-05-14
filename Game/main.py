@@ -18,7 +18,7 @@ q_agent = QlearnAgent(
     explor_decay=1.0,
     player_id=1
 )
-q_agent.load_model("models/qlearn_agent_2.pkl")
+q_agent.load_model("models/qlearn_agent_7.pkl")
 
 # Agent list: Q-learning vs Human
 #agents = [q_agent, "human"]
@@ -37,8 +37,11 @@ dqn_agent = DoubleDQNAgent(
     epsilon_decay=1.0         # Won’t change epsilon
 )
 
+
+
+
 # Agent list: Q-learning vs Human
-dqn_agent.load_model("models/dqn_agent_1.pkl")
+dqn_agent.load_model("models/dqn_agent_4.pkl")
 
 
 agents = [q_agent, dqn_agent]

@@ -10,9 +10,9 @@ from Agents.double_dqn_agent import DoubleDQNAgent
 from Agents.double_q_learning import QlearnAgent
 import json
 
-BOARD_HEIGHT = 6
-BOARD_WIDTH = 7
-WIN_LENGTH = 4
+BOARD_HEIGHT = 150
+BOARD_WIDTH = 200
+WIN_LENGTH = 15
 NUM_EPISODES = 5000
 
 AGENT_CLASSES = {
