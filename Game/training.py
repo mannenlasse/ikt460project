@@ -13,7 +13,7 @@ import json
 BOARD_HEIGHT = 6
 BOARD_WIDTH = 7
 WIN_LENGTH = 4
-NUM_EPISODES = 30000
+NUM_EPISODES = 10000
 
 AGENT_CLASSES = {
     "qlearn": QlearnAgent,
@@ -27,41 +27,20 @@ def init_agents(agent_names):
     for i, name in enumerate(agent_names):
         player_id = i + 1
         if name == "qlearn":
-            agent = QlearnAgent(
-                learn_rate=0.0,
-                disc_factor=0.95,
-                explor_rate=0.0,
-                explor_decay=1.0,
-                player_id=player_id
-            )
+            agent = QlearnAgent(learn_rate=0.05, disc_factor=0.95, explor_rate=1.0, explor_decay=0.997, player_id=player_id
+)
         elif name == "dqn":
-            agent = DoubleDQNAgent(
-                board_height=BOARD_HEIGHT,
-                board_width=BOARD_WIDTH,
-                action_size=BOARD_WIDTH,
-                learning_rate=0.0,
-                gamma=0.99,
-                epsilon=0.0,
-                epsilon_min=0.0,
-                epsilon_decay=1.0,
-                player_id=player_id
-            )
+            agent = DoubleDQNAgent(board_height=BOARD_HEIGHT,board_width=BOARD_WIDTH,action_size=BOARD_WIDTH,learning_rate=0.0005,   gamma=0.99,  
+                                     epsilon=1.0,epsilon_min=0.05,epsilon_decay=0.995,  player_id=player_id)
         elif name == "ppo":
-            agent = PPOAgent(
-                lr=0.0,
-                gamma=0.99,
-                player_id=player_id,
-                state_dim=BOARD_HEIGHT * BOARD_WIDTH,
-                action_dim=BOARD_WIDTH
-            )
+            agent = PPOAgent(lr=0.0003, gamma=0.99,player_id=player_id, state_dim=BOARD_HEIGHT * BOARD_WIDTH, action_dim=BOARD_WIDTH
+)
         elif name == "random":
             agent = RandomAgent(Current_Player=player_id)
         else:
             raise ValueError(f"Unknown agent type: {name}")
         agents.append(agent)
     return agents
-
-
 
 def train(agent_names):
     agents = init_agents(agent_names)
@@ -194,5 +173,4 @@ if __name__ == "__main__":
     parser.add_argument("--agents", nargs='+', required=True, help="List of agent types (e.g. qlearn qlearn dqn dqn dqn)")
     args = parser.parse_args()
     train(args.agents)
-
 
