@@ -31,13 +31,15 @@ class QlearnAgent(Agent):
         return game.board
 
     def max_action(self, q, state, game):
+        state_key = tuple(map(tuple, state))  # Convert to hashable format
         valid_actions = game.get_valid_columns()
-        q_values = {a: q.get((state, a), 0.0) for a in valid_actions}
-        
+        q_values = {a: q.get((state_key, a), 0.0) for a in valid_actions}
+
         max_q = max(q_values.values())
         best_actions = [a for a, val in q_values.items() if val == max_q]
 
         return random.choice(best_actions)
+
 
 
     # can also be said to be the decide_action because it decided what action the agent takes based on the current q-value estimation

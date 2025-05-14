@@ -27,3 +27,5 @@ class RandomAgent(Agent):
 
         return random_available_column
 
+    def get_state(self, game):
+        return game.board.flatten().astype(np.float32)

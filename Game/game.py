@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from print import log
+
 class Game: 
 
 

@@ -113,3 +113,13 @@ class PPOAgent:
 
         # Clear memory
         self.memory = []
+
+
+
+    def get_state(self, game):
+        # Normalize the board: 0 = empty, 1 = own piece, -1 = opponent
+        board_state = game.board.flatten().astype(np.float32)
+        opponent_id = 3 - self.player_id
+        board_state[board_state == self.player_id] = 1.0
+        board_state[board_state == opponent_id] = -1.0
+        return board_state
