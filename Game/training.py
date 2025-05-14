@@ -13,7 +13,7 @@ import json
 BOARD_HEIGHT = 6
 BOARD_WIDTH = 7
 WIN_LENGTH = 4
-NUM_EPISODES = 10000
+NUM_EPISODES = 30000
 
 AGENT_CLASSES = {
     "qlearn": QlearnAgent,
@@ -31,7 +31,7 @@ def init_agents(agent_names):
 )
         elif name == "dqn":
             agent = DoubleDQNAgent(board_height=BOARD_HEIGHT,board_width=BOARD_WIDTH,action_size=BOARD_WIDTH,learning_rate=0.0005,   gamma=0.99,  
-                                     epsilon=1.0,epsilon_min=0.05,epsilon_decay=0.995,  player_id=player_id)
+                                     epsilon=1.0,epsilon_min=0.05,epsilon_decay=0.999,  player_id=player_id)
         elif name == "ppo":
             agent = PPOAgent(lr=0.0003, gamma=0.99,player_id=player_id, state_dim=BOARD_HEIGHT * BOARD_WIDTH, action_dim=BOARD_WIDTH
 )
@@ -137,6 +137,8 @@ def train(agent_names):
         print(f"Player {pid} ({agent_names[pid - 1].upper()}): Total Wins = {win_stats[pid]}, Avg Moves/Game = {np.mean(agent_moves[pid]):.2f}")
     print(f"Draws: {win_stats['draw']}")
 
+    
+
     os.makedirs("models", exist_ok=True)
     for pid, agent in enumerate(agents, start=1):
         if hasattr(agent, 'save_model'):
@@ -166,6 +168,13 @@ def train(agent_names):
         print(f"Player {pid} ({agent_names[pid - 1].upper()}): Total Wins = {total_wins}, Win Rate = {win_rate:.2f}%, Avg Moves/Game = {np.mean(agent_moves[pid]):.2f}")
     print(f"Draws: {win_stats['draw']}")
 
+    # Ny kode for win rate siste 500 episoder
+    window = 500
+    print(f"\n======= Win Rate Last {window} Episodes =======")
+    for pid in range(1, num_agents + 1):
+        recent_wins = agent_wins[pid][-window:] if len(agent_wins[pid]) >= window else agent_wins[pid]
+        recent_win_rate = (sum(recent_wins) / len(recent_wins)) * 100 if recent_wins else 0
+        print(f"Player {pid} ({agent_names[pid - 1].upper()}): Win Rate Last {len(recent_wins)} Episodes = {recent_win_rate:.2f}%")
 
 
 if __name__ == "__main__":

@@ -8,12 +8,12 @@ BOARD_HEIGHT = 6
 BOARD_WIDTH = 7
 NUM_PLAYERS = 2
 WINNING_LENGTH = 4
-EPISODES = 100
+EPISODES = 30000
 
 
 
 game = Game(BOARD_HEIGHT, BOARD_WIDTH, NUM_PLAYERS, WINNING_LENGTH)
-"""
+
 # Load Q-learning agent
 q_agent = QlearnAgent(
     learn_rate=0.0,
@@ -22,8 +22,7 @@ q_agent = QlearnAgent(
     explor_decay=1.0,
     player_id=1
 )
-q_agent.load_model("models/dqn_agent_1.pkl")
-"""
+
 
 
 
@@ -42,7 +41,8 @@ dqn_agent.load_model("models/dqn_agent_1.pkl")
 
 
 
-# Load PPO agent
+# Load PPO agent 
+"""
 ppo_agent = PPOAgent(
     player_id=1,
     state_dim=BOARD_HEIGHT * BOARD_WIDTH,
@@ -50,10 +50,10 @@ ppo_agent = PPOAgent(
     lr=0.0,  # Inference only
     gamma=0.95
 )
-ppo_agent.load_model("models/ppo_agent_2.pkl")  # Adjust model name as needed
+#ppo_agent.load_model("models/ppo_agent_2.pkl")  # Adjust model name as needed
+"""
 
-
-agents = [ppo_agent, dqn_agent]
+agents = [dqn_agent, q_agent]
 
 
 results = {1: 0, 2: 0, "draw": 0}
