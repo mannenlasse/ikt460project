@@ -26,18 +26,21 @@ class PPOAgent:
         self.gamma = gamma
         self.clip_epsilon = clip_epsilon
 
-        self.policy = PolicyNetwork(state_dim, action_dim)
+        # Set device for GPU acceleration
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Policy network on GPU
+        self.policy = PolicyNetwork(state_dim, action_dim).to(self.device)
         self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
 
-        # Memory for training
         self.memory = []
-        
-        # Saving loss for plotting
         self.losses = []
+
+        print(f"PPOAgent initialized on {self.device}.")
 
     def select_action(self, game):
         # Flatten the board
-        state = torch.FloatTensor(game.board.flatten()).unsqueeze(0)
+        state = torch.tensor(game.board.flatten(), dtype=torch.float32, device=self.device).unsqueeze(0)
         logits = self.policy(state)
         
         valid_moves = game.get_valid_columns()
@@ -84,11 +87,10 @@ class PPOAgent:
             G = reward + self.gamma * G
             returns.insert(0, G)
 
-        returns = torch.FloatTensor(returns)
-        states = torch.cat(states)
-        actions = torch.LongTensor(actions)
-        log_probs_old = torch.cat(log_probs_old)
-
+        returns = torch.tensor(returns, dtype=torch.float32, device=self.device)
+        states = torch.cat(states).to(self.device)
+        actions = torch.tensor(actions, dtype=torch.long, device=self.device)
+        log_probs_old = torch.cat(log_probs_old).to(self.device)
         # Get current policy's log probs
         logits = self.policy(states)
         probs = torch.softmax(logits, dim=1)
