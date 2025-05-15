@@ -24,8 +24,9 @@ class DoubleDQNAgent:
     # Remove reward_type from __init__ arguments and self.reward_type
     def __init__(self, board_height, board_width, action_size,
                  learning_rate, gamma, epsilon,
-                 epsilon_min, epsilon_decay, memory_size=10000,
-                 batch_size=64, update_target_freq=10,  player_id = None):
+                 epsilon_min, epsilon_decay, memory_size=50000,  # Økt minnestørrelse
+                 batch_size=64, update_target_freq=100,  # Økt fra 10 til 100
+                 player_id=None, device=None):  # Legg til device-parameter
         self.player_id = player_id
         self.board_height = board_height
         self.board_width = board_width
@@ -40,14 +41,12 @@ class DoubleDQNAgent:
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.update_target_freq = update_target_freq
-        # self.reward_type = reward_type # Removed
 
         # Experience replay memory
         self.memory = deque(maxlen=memory_size)
 
-
         # Set device for GPU acceleration
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Main network and target network (Use DQNNetwork)
         self.model = DQNNetwork(self.state_size, self.action_size).to(self.device)
@@ -61,7 +60,6 @@ class DoubleDQNAgent:
         # Training counter
         self.train_step_counter = 0
 
-        # print(f"DoubleDQNAgent initialized on {self.device} with {self.reward_type} rewards.") # Removed reward type from message
         print(f"DoubleDQNAgent initialized on {self.device}.")
 
 

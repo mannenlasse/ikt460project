@@ -10,10 +10,14 @@ from Agents.double_dqn_agent import DoubleDQNAgent
 from Agents.double_q_learning import QlearnAgent
 import json
 
-BOARD_HEIGHT = 6
-BOARD_WIDTH = 7
-WIN_LENGTH = 4
-NUM_EPISODES = 10000
+BOARD_HEIGHT = 10
+BOARD_WIDTH = 13
+WIN_LENGTH = 6
+NUM_EPISODES = 60000
+
+import torch
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Trening vil kjøre på: {device}")
 
 AGENT_CLASSES = {
     "qlearn": QlearnAgent,
@@ -27,14 +31,14 @@ def init_agents(agent_names):
     for i, name in enumerate(agent_names):
         player_id = i + 1
         if name == "qlearn":
-            agent = QlearnAgent(learn_rate=0.05, disc_factor=0.95, explor_rate=1.0, explor_decay=0.999, player_id=player_id
-)
+            agent = QlearnAgent(learn_rate=0.05, disc_factor=0.95, explor_rate=1.0, explor_decay=0.999, player_id=player_id)
         elif name == "dqn":
-            agent = DoubleDQNAgent(board_height=BOARD_HEIGHT,board_width=BOARD_WIDTH,action_size=BOARD_WIDTH,learning_rate=0.0005,   gamma=0.99,  
-                                     epsilon=1.0,epsilon_min=0.05,epsilon_decay=0.999,  player_id=player_id)
+            agent = DoubleDQNAgent(board_height=BOARD_HEIGHT, board_width=BOARD_WIDTH, action_size=BOARD_WIDTH, 
+                                  learning_rate=0.0005, gamma=0.99, epsilon=1.0, epsilon_min=0.05, 
+                                  epsilon_decay=0.999, player_id=player_id, device=device)
         elif name == "ppo":
-            agent = PPOAgent(lr=0.0003, gamma=0.99,player_id=player_id, state_dim=BOARD_HEIGHT * BOARD_WIDTH, action_dim=BOARD_WIDTH
-)
+            agent = PPOAgent(lr=0.0003, gamma=0.99, player_id=player_id, 
+                           state_dim=BOARD_HEIGHT * BOARD_WIDTH, action_dim=BOARD_WIDTH, device=device)
         elif name == "random":
             agent = RandomAgent(Current_Player=player_id)
         else:
