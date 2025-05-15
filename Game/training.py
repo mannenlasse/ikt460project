@@ -13,7 +13,7 @@ import json
 BOARD_HEIGHT = 6
 BOARD_WIDTH = 7
 WIN_LENGTH = 4
-NUM_EPISODES = 10000
+NUM_EPISODES = 30000  
 
 AGENT_CLASSES = {
     "qlearn": QlearnAgent,
