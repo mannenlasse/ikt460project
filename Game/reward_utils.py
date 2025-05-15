@@ -193,7 +193,7 @@ def calculate_reward(game, player_id, row, col, done, reward_type):
         if col == 0:
             intermediate_reward -= 0.05
 
-        return intermediate_reward * 5
+        return intermediate_reward 
     else:
         # For 'sparse' rewards, return 0 for non-terminal states
         return 0.0
