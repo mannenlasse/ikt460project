@@ -8,9 +8,8 @@ from Agents.random_agent import RandomAgent
 from print import log
 BOARD_HEIGHT = 6
 BOARD_WIDTH = 7
-NUM_PLAYERS = 2
 WINNING_LENGTH = 4
-EPISODES = 300
+EPISODES = 100
 def load_agent(spec: str, player_id: int):
     spec = spec.lower()
 
@@ -55,6 +54,7 @@ def load_agent(spec: str, player_id: int):
 
 
 def main(agent_specs):
+    NUM_PLAYERS = len(agent_specs)  
     if len(agent_specs) != NUM_PLAYERS:
         raise ValueError(f"You must provide exactly {NUM_PLAYERS} agents.")
 
@@ -127,6 +127,6 @@ def main(agent_specs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--agents", nargs=2, required=True, help="Specify two agents (e.g. qlearn dqn or paths to models)")
+    parser.add_argument("--agents", nargs="+", required=True, help="Specify agent types or model paths (e.g. qlearn dqn ppo)")
     args = parser.parse_args()
     main(args.agents)
