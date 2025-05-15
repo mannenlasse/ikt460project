@@ -10,10 +10,10 @@ from Agents.double_dqn_agent import DoubleDQNAgent
 from Agents.double_q_learning import QlearnAgent
 import json
 
-BOARD_HEIGHT = 10
-BOARD_WIDTH = 13
-WIN_LENGTH = 6
-NUM_EPISODES = 60000
+BOARD_HEIGHT = 6
+BOARD_WIDTH = 7
+WIN_LENGTH = 4
+NUM_EPISODES = 30000
 
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -25,6 +25,8 @@ AGENT_CLASSES = {
     "ppo": PPOAgent,
     "random": RandomAgent
 }
+
+
 
 def init_agents(agent_names):
     agents = []
