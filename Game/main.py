@@ -10,7 +10,7 @@ BOARD_HEIGHT = 6
 BOARD_WIDTH = 7
 NUM_PLAYERS = 2
 WINNING_LENGTH = 4
-EPISODES = 1
+EPISODES = 300
 def load_agent(spec: str, player_id: int):
     spec = spec.lower()
 
@@ -69,7 +69,7 @@ def main(agent_specs):
     wins = [0] * NUM_PLAYERS
     draws = 0
 
-    print("\nGame started!\n")
+    log("\nGame started!\n")
 
     for episode in range(1, EPISODES + 1):
         game = Game(BOARD_HEIGHT, BOARD_WIDTH, NUM_PLAYERS, WINNING_LENGTH)
@@ -106,8 +106,8 @@ def main(agent_specs):
 
             row, col = result
             log(f"Player {current_player} played in column {col}, row {row}")
-            game.print_board()
-            print()
+            #game.print_board()
+            #print()
 
             if game.winning_moves(row, col):
                 log(f"Player {current_player} ({labels[current_player - 1]}) wins!\n")
@@ -119,7 +119,7 @@ def main(agent_specs):
         # Print stats every 100 episodes
         if episode % 100 == 0:
             total_played = sum(wins) + draws
-            print(f"\n--- At{episode} episodes ---")
+            print(f"\n--- At {episode} episodes ---")
             for i in range(NUM_PLAYERS):
                 losses = total_played - wins[i] - draws
                 print(f"Player {i + 1} ({labels[i]}): Wins = {wins[i]}, Losses = {losses}, Draws = {draws}")
