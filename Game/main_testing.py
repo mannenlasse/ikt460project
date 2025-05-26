@@ -31,26 +31,26 @@ dqn_agent = DoubleDQNAgent(
     board_height=BOARD_HEIGHT,
     board_width=BOARD_WIDTH,
     action_size=BOARD_WIDTH,
-    player_id=0,              # NOT 0 — must match the second player
-    learning_rate=0.0,        # Don’t train
-    gamma=0.95,               # Doesn’t matter for inference
-    epsilon=0.0,              # Always exploit learned policy
-    epsilon_min=0.0,          # Not decaying anyway
-    epsilon_decay=1.0         # Won’t change epsilon
+    player_id=0,              
+    learning_rate=0.0,        
+    gamma=0.95,            
+    epsilon=0.0,           
+    epsilon_min=0.0,      
+    epsilon_decay=1.0       
 )
 dqn_agent.load_model("models/dqn_agent_1.pkl")
 
 
 
-# Load PPO agent
+# PPO agent
 ppo_agent = PPOAgent(
     player_id=1,
     state_dim=BOARD_HEIGHT * BOARD_WIDTH,
     action_dim=BOARD_WIDTH,
-    lr=0.0,  # Inference only
+    lr=0.0,  
     gamma=0.95
 )
-ppo_agent.load_model("models/ppo_agent_2.pkl")  # Adjust model name as needed
+ppo_agent.load_model("models/ppo_agent_2.pkl")  
 
 
 agents = [ppo_agent, dqn_agent]
@@ -72,7 +72,7 @@ for episode in range(EPISODES):
 
         result = game.make_move(move)
         if not result:
-            continue  # Invalid move, skip
+            continue  
 
         row, col = result
         if game.winning_moves(row, col):
