@@ -8,7 +8,7 @@ def _static_check_win(board, player_id, row, col, win_length):
     results in a win. Does not modify the board.
     """
     height, width = board.shape
-    directions = [(0, 1), (1, 0), (1, 1), (1, -1)] # H, V, D\, D/
+    directions = [(0, 1), (1, 0), (1, 1), (1, -1)]  
 
     for dr, dc in directions:
         count = 1
@@ -32,19 +32,13 @@ def _static_check_win(board, player_id, row, col, win_length):
     return False
 
 def _check_line_length(game, row, col, player_id, length_needed, opponent_id, check_for_player=None):
-    """
-    Checks if the move at (row, col) by 'player_id' completed a line
-    of exactly 'length_needed' for 'check_for_player'.
-    If 'check_for_player' is None, it checks for 'player_id'.
-    Used for detecting own 3-in-a-row or blocking opponent's 3-in-a-row.
-    Requires opponent_id to check blocking condition.
-    """
+ 
     if check_for_player is None:
         check_for_player = player_id
 
     board = game.board
-    height = game.board_height # Use game attributes
-    width = game.board_width  # Use game attributes
+    height = game.board_height  
+    width = game.board_width  
 
     directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
 
@@ -54,23 +48,21 @@ def _check_line_length(game, row, col, player_id, length_needed, opponent_id, ch
              count = 0
 
         # Count in positive direction
-        for i in range(1, length_needed + 1): # Check up to length_needed
+        for i in range(1, length_needed + 1): 
             r, c = row + i * dr, col + i * dc
             if 0 <= r < height and 0 <= c < width and board[r, c] == check_for_player:
                 count += 1
             else:
                 break
         # Count in negative direction
-        for i in range(1, length_needed + 1): # Check up to length_needed
+        for i in range(1, length_needed + 1):  
             r, c = row - i * dr, col - i * dc
             if 0 <= r < height and 0 <= c < width and board[r, c] == check_for_player:
                 count += 1
             else:
                 break
 
-        # Adjust count logic slightly as we counted both directions from center
-        # Total line length including the center piece (if it matches check_for_player)
-        # Recalculate count across the whole line through (row, col)
+ 
         line_count = 1 if board[row, col] == check_for_player else 0
         # Positive direction
         for i in range(1, game.winning_length):
@@ -88,7 +80,7 @@ def _check_line_length(game, row, col, player_id, length_needed, opponent_id, ch
                  break
 
 
-        # Check blocking condition: Did the opponent have length_needed-1 before this move?
+        # Check blocking condition:  opponent have almost win before this move?
         if board[row, col] == player_id and check_for_player == opponent_id:
             # Check count in positive direction *before* the move
             count_pos = 0
@@ -123,9 +115,7 @@ def _check_line_length(game, row, col, player_id, length_needed, opponent_id, ch
     return False
 
 def _check_opponent_immediate_win_threat(game, opponent_id):
-    """
-    Checks if the opponent has a winning move available on their next turn.
-    """
+ 
     valid_columns = game.get_valid_columns()
     original_board = game.board.copy()
     board_height = game.board_height # Use game attributes
@@ -148,10 +138,7 @@ def _check_opponent_immediate_win_threat(game, opponent_id):
 # --- Main Reward Calculation Function ---
 
 def calculate_reward(game, player_id, row, col, done, reward_type):
-    """
-    Calculates the reward based on the game state and reward type.
-    Moved from DoubleDQNAgent and made standalone.
-    """
+ 
     # --- Terminal Rewards (Common to both types) ---
     if done:
         if game.winner == player_id:
@@ -161,32 +148,32 @@ def calculate_reward(game, player_id, row, col, done, reward_type):
         else: # Draw
             return 0.0
 
-    # --- Intermediate Rewards (Only for 'shaped' type) ---
+    # --- Intermediate Rewards sh ---
     if reward_type == 'shaped':
         intermediate_reward = 0.0
-        opponent_id = 3 - player_id # Assuming player IDs 1 and 2
+        opponent_id = 3 - player_id  
 
-        # Check if row/col are valid (might be -1 if game ended before move)
+        # Check if row/col are valid  
         if row == -1 or col == -1:
-             return 0.0 # No intermediate reward if move wasn't made
+             return 0.0 
 
-        # 1. Reward for creating 3-in-a-row (potential win setup)
+        # Reward for creating 3-in-a-row  
         if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id):
             intermediate_reward += 0.5
 
-        # 2. Reward for blocking opponent's 3-in-a-row
+        # Reward for blocking opponent's 3-in-a-row
         if _check_line_length(game, row, col, player_id, game.winning_length - 1, opponent_id, check_for_player=opponent_id):
              intermediate_reward += 0.8
 
 
 
 
-        # 3. Reward for playing in the center column
+        #  Reward for playing in the center column
         center_col = game.board_width // 2
         if col == center_col:
             intermediate_reward += 0.1
 
-        # 4. Penalty for allowing opponent an immediate win next turn
+        # Penalty for allowing opponent an immediate win next turn
         if _check_opponent_immediate_win_threat(game, opponent_id):
             intermediate_reward -= 1.0
 
@@ -195,5 +182,5 @@ def calculate_reward(game, player_id, row, col, done, reward_type):
 
         return intermediate_reward 
     else:
-        # For 'sparse' rewards, return 0 for non-terminal states
+        #   return 0 for non-terminal states
         return 0.0
