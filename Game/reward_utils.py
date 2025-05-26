@@ -1,12 +1,10 @@
 import numpy as np
 
-# --- Helper Functions (Moved from DoubleDQNAgent, 'self' removed) ---
 
 def _static_check_win(board, player_id, row, col, win_length):
-    """
-    Static check if placing player_id at (row, col) on the given board
-    results in a win. Does not modify the board.
-    """
+    
+    #Static check if a piece on boardresults in a win. 
+    
     height, width = board.shape
     directions = [(0, 1), (1, 0), (1, 1), (1, -1)]  
 
@@ -98,9 +96,8 @@ def _check_line_length(game, row, col, player_id, length_needed, opponent_id, ch
                 else: break
 
             if count_pos + count_neg >= length_needed - 1:
-                 # Check if the space at (row, col) was the only empty spot completing the line
-                 # This logic might need refinement, but let's assume blocking if count was >= length_needed - 1
-                 return True # Agent potentially blocked a line
+
+                 return True 
 
         # Check own line creation condition
         elif board[row, col] == player_id and check_for_player == player_id:
@@ -118,7 +115,7 @@ def _check_opponent_immediate_win_threat(game, opponent_id):
  
     valid_columns = game.get_valid_columns()
     original_board = game.board.copy()
-    board_height = game.board_height # Use game attributes
+    board_height = game.board_height 
 
     for next_col in valid_columns:
         next_row = -1
@@ -130,16 +127,16 @@ def _check_opponent_immediate_win_threat(game, opponent_id):
         if next_row != -1:
             original_board[next_row, next_col] = opponent_id
             if _static_check_win(original_board, opponent_id, next_row, next_col, game.winning_length):
-                return True # Opponent has an immediate threat
-            original_board[next_row, next_col] = 0 # Undo simulation
+                return True 
+            original_board[next_row, next_col] = 0 
 
     return False
 
-# --- Main Reward Calculation Function ---
+# Main Reward Calculation Function
 
 def calculate_reward(game, player_id, row, col, done, reward_type):
  
-    # --- Terminal Rewards (Common to both types) ---
+    # --- Terminal Rewards ---
     if done:
         if game.winner == player_id:
             return 10.0  # Win
@@ -148,7 +145,7 @@ def calculate_reward(game, player_id, row, col, done, reward_type):
         else: # Draw
             return 0.0
 
-    # --- Intermediate Rewards sh ---
+    # Intermediate Rewards 
     if reward_type == 'shaped':
         intermediate_reward = 0.0
         opponent_id = 3 - player_id  
