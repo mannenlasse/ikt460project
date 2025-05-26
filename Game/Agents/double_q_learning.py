@@ -12,8 +12,8 @@ class QlearnAgent(Agent):
         self.player_id = player_id 
 
 
-        self.alpha = learn_rate  # learning rate
-        self.gamma = disc_factor # discounting factor, how much do future rewards matter
+        self.alpha = learn_rate 
+        self.gamma = disc_factor 
         self.epsilon = explor_rate
         self.epsilon_decay = explor_decay
         self.epsilon_min = epsilon_min
@@ -31,7 +31,7 @@ class QlearnAgent(Agent):
         return game.board
 
     def max_action(self, q, state, game):
-        state_key = tuple(map(tuple, state))  # Convert to hashable format
+        state_key = tuple(map(tuple, state)) 
         valid_actions = game.get_valid_columns()
         q_values = {a: q.get((state_key, a), 0.0) for a in valid_actions}
 
@@ -67,10 +67,12 @@ class QlearnAgent(Agent):
         else: 
             # Sum Q-values only for valid actions
 
-            state_key = tuple(map(tuple, state))  # make it hashable
+
+            #hashed
+            state_key = tuple(map(tuple, state))  
             q_sum = {a: self.q1.get((state_key, a), -0.1) + self.q2.get((state_key, a), -0.1) for a in valid_actions}
 
-            if not q_sum:  # If no valid Q-values
+            if not q_sum:  
                 action = random.choice(valid_actions)
             else:
                 max_q = max(q_sum.values())
